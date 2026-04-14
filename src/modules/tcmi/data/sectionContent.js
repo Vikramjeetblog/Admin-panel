@@ -112,6 +112,27 @@ export const tcmiCourseCatalog = [
   },
 ];
 
+export const tcmiBatchRows = [
+  {
+    id: "BAT-201",
+    batchName: "PIA-L2-EVE",
+    course: "Certification L2",
+    trainer: "Meera Joshi",
+    students: 24,
+    schedule: "Mon, Wed, Fri · 6:30 PM - 8:00 PM",
+    mode: "Offline",
+  },
+  {
+    id: "BAT-202",
+    batchName: "VOC-L4-WKD",
+    course: "Certification L4",
+    trainer: "Arjun Dey",
+    students: 18,
+    schedule: "Sat, Sun · 10:00 AM - 12:00 PM",
+    mode: "Hybrid",
+  },
+];
+
 
 export const tcmiFinanceRows = [
   {
