@@ -180,17 +180,13 @@ const TCMIOverviewPanel = ({ content, globalSearch = "", role = "Admin" }) => {
       photo: studentPhotoPreview,
     };
 
-    if (studentModal.mode === "edit" && !window.confirm("Are you sure you want to update student details?")) return;
-
-    if (studentModal.mode === "add") {
-      const newId = `STU-${1000 + studentRows.length + 1}`;
-      setStudentRows((prev) => [{ id: newId, ...payload }, ...prev]);
-      setSelectedStudentId(newId);
-    } else {
-      setStudentRows((prev) => prev.map((student) => (student.id === studentModal.studentId ? { ...student, ...payload } : student)));
-      setSelectedStudentId(studentModal.studentId);
+    if (studentModal.mode === "edit") {
+      return requestDelete("student_update", payload, "Are you sure you want to update student details?");
     }
 
+    const newId = `STU-${1000 + studentRows.length + 1}`;
+    setStudentRows((prev) => [{ id: newId, ...payload }, ...prev]);
+    setSelectedStudentId(newId);
     setStudentModal({ open: false, mode: "add", studentId: null });
     setToastMessage("Student saved successfully.");
     setTimeout(() => setToastMessage(""), 2000);
@@ -209,6 +205,12 @@ const TCMIOverviewPanel = ({ content, globalSearch = "", role = "Admin" }) => {
       setStudentRows((prev) => prev.filter((row) => !ids.includes(row.id)));
       setSelectedStudentIds([]);
       setToastMessage("Selected students deleted.");
+    }
+    if (confirmDialog.type === "student_update") {
+      setStudentRows((prev) => prev.map((student) => (student.id === studentModal.studentId ? { ...student, ...confirmDialog.payload } : student)));
+      setSelectedStudentId(studentModal.studentId);
+      setStudentModal({ open: false, mode: "add", studentId: null });
+      setToastMessage("Student updated successfully.");
     }
     setConfirmDialog({ open: false, type: "", payload: null, message: "" });
     setTimeout(() => setToastMessage(""), 2000);

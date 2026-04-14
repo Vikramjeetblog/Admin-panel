@@ -20,7 +20,7 @@ const LeadsModule = ({ globalSearch = "" }) => {
   const [leadModal, setLeadModal] = useState({ open: false, mode: "add", id: null });
   const [leadForm, setLeadForm] = useState(emptyForm);
   const [errors, setErrors] = useState({});
-  const [confirmDelete, setConfirmDelete] = useState({ open: false, ids: [] });
+  const [confirmDialog, setConfirmDialog] = useState({ open: false, type: "delete", ids: [], leadPayload: null });
   const [toast, setToast] = useState("");
 
   const filtered = useMemo(() => {
@@ -50,21 +50,30 @@ const LeadsModule = ({ globalSearch = "" }) => {
     setLeadForm(row ? { name: row.name, phone: normalizePhone(row.phone || ""), status: row.status || "Warm", notes: row.notes || "" } : emptyForm);
   };
 
+  const applyLeadUpdate = (payload) => {
+    setRows((prev) => prev.map((row) => (row.id === leadModal.id ? { ...row, ...payload } : row)));
+    setLeadModal({ open: false, mode: "add", id: null });
+    showToast("Lead updated");
+  };
+
   const saveLead = () => {
     const nextErrors = validateLeadForm(leadForm);
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) return;
 
-    if (leadModal.mode === "edit" && !window.confirm("Are you sure you want to update lead details?")) {
+    if (leadModal.mode === "edit") {
+      setConfirmDialog({
+        open: true,
+        type: "edit",
+        ids: [],
+        leadPayload: { ...leadForm },
+      });
       return;
     }
 
     if (leadModal.mode === "add") {
       setRows((prev) => [{ id: `LD-${1000 + prev.length + 1}`, source: "Manual", leadPercentage: 0, followUp: new Date().toISOString().slice(0, 10), converted: false, ...leadForm }, ...prev]);
       showToast("Lead added");
-    } else {
-      setRows((prev) => prev.map((row) => (row.id === leadModal.id ? { ...row, ...leadForm } : row)));
-      showToast("Lead updated");
     }
     setLeadModal({ open: false, mode: "add", id: null });
   };
@@ -72,7 +81,7 @@ const LeadsModule = ({ globalSearch = "" }) => {
   const deleteRows = (ids) => {
     setRows((prev) => prev.filter((row) => !ids.includes(row.id)));
     setSelectedIds((prev) => prev.filter((id) => !ids.includes(id)));
-    setConfirmDelete({ open: false, ids: [] });
+    setConfirmDialog({ open: false, type: "delete", ids: [], leadPayload: null });
     showToast("Lead deleted");
   };
 
@@ -85,7 +94,7 @@ const LeadsModule = ({ globalSearch = "" }) => {
       {selectedIds.length > 0 && (
         <div className="flex items-center gap-2 rounded-lg border border-gray-200 p-2 text-xs">
           <span>{selectedIds.length} selected</span>
-          <button onClick={() => setConfirmDelete({ open: true, ids: selectedIds })} className="rounded-lg border border-gray-200 px-2 py-1 hover:bg-gray-50">Delete selected</button>
+          <button onClick={() => setConfirmDialog({ open: true, type: "delete", ids: selectedIds, leadPayload: null })} className="rounded-lg border border-gray-200 px-2 py-1 hover:bg-gray-50">Delete selected</button>
           <button onClick={() => setRows((prev) => prev.map((row) => (selectedIds.includes(row.id) ? { ...row, status: "Hot" } : row)))} className="rounded-lg border border-gray-200 px-2 py-1 hover:bg-gray-50">Change status</button>
         </div>
       )}
@@ -119,7 +128,7 @@ const LeadsModule = ({ globalSearch = "" }) => {
                   <div className="flex gap-1">
                     <button onClick={() => openLeadModal("view", row)} className="rounded-lg border border-gray-200 p-2 hover:bg-gray-50"><FiEye size={14} /></button>
                     <button onClick={() => openLeadModal("edit", row)} className="rounded-lg border border-gray-200 p-2 hover:bg-gray-50"><FiEdit2 size={14} /></button>
-                    <button onClick={() => setConfirmDelete({ open: true, ids: [row.id] })} className="rounded-lg border border-gray-200 p-2 hover:bg-gray-50"><FiTrash2 size={14} /></button>
+                    <button onClick={() => setConfirmDialog({ open: true, type: "delete", ids: [row.id], leadPayload: null })} className="rounded-lg border border-gray-200 p-2 hover:bg-gray-50"><FiTrash2 size={14} /></button>
                   </div>
                 </td>
               </tr>
@@ -150,18 +159,30 @@ const LeadsModule = ({ globalSearch = "" }) => {
       />
 
       <Modal
-        open={confirmDelete.open}
-        title="Confirm Delete"
-        onClose={() => setConfirmDelete({ open: false, ids: [] })}
+        open={confirmDialog.open}
+        title={confirmDialog.type === "edit" ? "Confirm Update" : "Confirm Delete"}
+        onClose={() => setConfirmDialog({ open: false, type: "delete", ids: [], leadPayload: null })}
         maxWidth="max-w-md"
         footer={
           <>
-            <button onClick={() => setConfirmDelete({ open: false, ids: [] })} className="rounded-lg border border-gray-200 px-3 py-2 text-xs hover:bg-gray-50">Cancel</button>
-            <button onClick={() => deleteRows(confirmDelete.ids)} className="rounded-lg border border-black bg-black px-3 py-2 text-xs text-white">Delete</button>
+            <button onClick={() => setConfirmDialog({ open: false, type: "delete", ids: [], leadPayload: null })} className="rounded-lg border border-gray-200 px-3 py-2 text-xs hover:bg-gray-50">Cancel</button>
+            <button
+              onClick={() => {
+                if (confirmDialog.type === "edit" && confirmDialog.leadPayload) {
+                  applyLeadUpdate(confirmDialog.leadPayload);
+                  setConfirmDialog({ open: false, type: "delete", ids: [], leadPayload: null });
+                  return;
+                }
+                deleteRows(confirmDialog.ids);
+              }}
+              className="rounded-lg border border-black bg-black px-3 py-2 text-xs text-white"
+            >
+              {confirmDialog.type === "edit" ? "Update" : "Delete"}
+            </button>
           </>
         }
       >
-        <p className="text-sm">Are you sure you want to delete?</p>
+        <p className="text-sm">{confirmDialog.type === "edit" ? "Are you sure you want to update?" : "Are you sure you want to delete?"}</p>
       </Modal>
     </div>
   );
