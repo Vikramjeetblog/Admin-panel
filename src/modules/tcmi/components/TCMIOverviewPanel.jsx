@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import { format } from "date-fns";
 import { FiEye, FiPlus } from "react-icons/fi";
 import { tcmiCourseCatalog, tcmiLeadRows, tcmiStudentRows } from "../data/sectionContent";
 
@@ -45,7 +46,7 @@ const TCMIOverviewPanel = ({ content }) => {
   const isLeads = content.title === "Leads";
   const isStudents = content.title === "Students";
   const isCourses = content.title === "Courses";
-  const showFeatureCards = featureCards.length > 0 && !isStudents;
+  const showFeatureCards = featureCards.length > 0 && !isStudents && !isLeads;
 
   const studentsData = useMemo(() => tcmiStudentRows, []);
   const selectedStudent = studentsData.find((student) => student.id === selectedStudentId) || studentsData[0];
@@ -135,7 +136,7 @@ const TCMIOverviewPanel = ({ content }) => {
       <div className="flex flex-col gap-2 border-b border-[var(--tcmi-border)] pb-5">
         <p className="font-body text-[11px] uppercase tracking-[0.16em] text-[var(--tcmi-muted)]">Section Overview</p>
         <h3 className="font-heading text-3xl text-[var(--tcmi-text)]">{content.title}</h3>
-        <p className="max-w-3xl font-body text-sm text-[var(--tcmi-muted)]">{content.description}</p>
+        {!isLeads && <p className="max-w-3xl font-body text-sm text-[var(--tcmi-muted)]">{content.description}</p>}
       </div>
 
       {showFeatureCards && (
@@ -183,7 +184,7 @@ const TCMIOverviewPanel = ({ content }) => {
                     <td className="px-3 py-2">{lead.name}</td>
                     <td className="px-3 py-2 text-[var(--tcmi-muted)]">{lead.source}</td>
                     <td className="px-3 py-2">{lead.leadPercentage}%</td>
-                    <td className="px-3 py-2">{lead.followUp}</td>
+                    <td className="px-3 py-2">{format(new Date(lead.followUp), "dd/MM/yy")}</td>
                     <td className="px-3 py-2">
                       <div className="flex gap-2">
                         <button onClick={() => openLeadDialog("view", lead)} className="rounded border border-[var(--tcmi-border)] px-2 py-1 text-xs hover:border-black">View</button>
