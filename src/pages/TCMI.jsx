@@ -429,7 +429,7 @@ const TCMI = () => {
       <div className="rounded-2xl border border-gray-200 bg-white p-4 sm:p-6">
         <p className="text-xs uppercase tracking-[0.2em] text-gray-500">Creatous Collective / TCMI</p>
         <h1 className="mt-2 text-2xl uppercase tracking-[0.08em] sm:text-3xl" style={headingStyle}>The Creatous Music Institute</h1>
-        <p className="mt-2 max-w-3xl text-sm text-gray-600">Minimal, premium, editorial interface using a black/grey/white system with clean borders and subtle interactions.</p>
+       
       </div>
 
       <div className="rounded-2xl border border-gray-200 bg-white p-3">
