@@ -1,11 +1,11 @@
+import React, { useMemo, useState } from "react";
 import { FiUserPlus, FiEye, FiEdit2 } from "react-icons/fi";
 import StudentForm from "../components/forms/EnrollStudentForm";
-import React, { useMemo, useState } from "react";
+
 import {
   FiBarChart2,
   FiBookOpen,
   FiCalendar,
-  FiCheckCircle,
   FiChevronRight,
   FiClock,
   FiCreditCard,
@@ -19,7 +19,6 @@ import {
   FiPercent,
   FiPlus,
   FiSearch,
-  FiShield,
   FiTarget,
   FiTrendingUp,
   FiUpload,
@@ -74,12 +73,7 @@ const leadData = [
     notes: "Interested in Diploma - Piano",
   },
   {
-    id: 1,
-    name: "Rahul Sharma",
-    course: "Guitar",
-    status: "Active",
-    date: "18/04/26",
-    fullData: {},
+   
     name: "Sara Khan",
     status: "Warm",
     source: "Referral",
@@ -95,56 +89,8 @@ const leadData = [
   },
 ];
 
-const TCMI = () => {
-  const [data, setData] = useState(initialStudents);
-  const [openForm, setOpenForm] = useState(false);
-  const [editStudent, setEditStudent] = useState(null);
-  const [viewStudent, setViewStudent] = useState(null);
 
-  const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState("All");
-
-  // ADD / EDIT
-  const handleAddStudent = (student) => {
-    if (editStudent) {
-      // EDIT
-      setData((prev) =>
-        prev.map((item) =>
-          item.id === editStudent.id
-            ? {
-                ...item,
-                name: student.name,
-                course: student.level || student.courseType,
-                fullData: student,
-              }
-            : item
-        )
-      );
-      setEditStudent(null);
-    } else {
-      // ADD
-      setData([
-        {
-          id: Date.now(),
-          name: student.name,
-          course: student.level || student.courseType,
-          status: "Active",
-          date: new Date().toLocaleDateString("en-GB"),
-          fullData: student,
-        },
-        ...data,
-      ]);
-    }
-  };
-
-  // FILTER
-  const filteredData = data.filter((item) => {
-    const matchSearch =
-      item.name?.toLowerCase().includes(search.toLowerCase()) ||
-      item.course?.toLowerCase().includes(search.toLowerCase());
-
-    const matchFilter =
-      filter === "All" || item.status === filter;
+       
 const studentData = [
   {
     name: "Nisha Mehta",
@@ -172,36 +118,45 @@ const studentData = [
   },
 ];
 
-    return matchSearch && matchFilter;
-  });
+  
 const courseData = [
   { program: "Certification - Level 1", duration: "3 months", fee: "₹18,000", students: 84 },
   { program: "Certification - Level 4", duration: "4 months", fee: "₹34,000", students: 61 },
   { program: "Diploma in Music Production", duration: "12 months", fee: "₹1,20,000", students: 38 },
 ];
+
+  
 const batchData = [
   { code: "PIA-L2-EVE", trainer: "Shreya Dutta", timing: "Mon-Wed-Fri | 6:00 PM", students: 22 },
   { code: "GTR-L3-MOR", trainer: "Karan Singh", timing: "Tue-Thu | 9:00 AM", students: 16 },
 ];
-  const examData = [
+
+     >
+const examData = [
   { exam: "Quarterly Skill Assessment", batch: "VOC-L4-WKD", date: "22 Apr 2026", marksType: "Theory + Practical" },
   { exam: "Diploma Mid-Term", batch: "SD-DIP-MOR", date: "26 Apr 2026", marksType: "Practical" },
 ];
-  const financeData = [
+
+const financeData = [
   { student: "Ritvik Suri", plan: "Installment", paid: "₹45,000", due: "₹15,000", receipt: "REC-1024" },
   { student: "Nisha Mehta", plan: "Full Payment", paid: "₹34,000", due: "₹0", receipt: "REC-1030" },
 ];
-  const documentData = [
+
+        
+const documentData = [
   { student: "Ishita Sen", file: "ID Proof", type: "PDF", updated: "10 Apr 2026" },
   { student: "Nisha Mehta", file: "Registration Form", type: "PDF", updated: "08 Apr 2026" },
   { student: "Ritvik Suri", file: "Course Certificate", type: "PDF", updated: "05 Apr 2026" },
 ];
-  const roleData = [
+
+const roleData = [
   { role: "Admin", access: "Full access" },
   { role: "Counselor", access: "Leads & Students" },
   { role: "Faculty", access: "Attendance & Exams" },
   { role: "Accountant", access: "Finance" },
 ];
+
+       
 const statusClass = {
   Hot: "bg-black text-white border-black",
   Warm: "bg-gray-100 text-black border-gray-300",
@@ -211,10 +166,11 @@ const statusClass = {
   Installment: "bg-gray-100 text-black border-gray-300",
 };
 
+        
+const cardClass = "rounded-2xl border border-gray-200 bg-white p-4 sm:p-5 transition duration-200 hover:border-black";
+
 const headingStyle = { fontFamily: '"Cooper Hewitt Heavy", "Syne", sans-serif' };
 const bodyStyle = { fontFamily: '"Canva Sans", "Inter", "JetBrains Mono", sans-serif' };
-  const cardClass = "rounded-2xl border border-gray-200 bg-white p-4 sm:p-5 transition duration-200 hover:border-black";
-
 
 const TableHeader = ({ titles }) => (
   <div
@@ -226,54 +182,6 @@ const TableHeader = ({ titles }) => (
     ))}
   </div>
 );
-  return (
-    <div className="space-y-6 max-w-6xl mx-auto">
-
-
-      {/* HEADER */}
-      <div>
-        <p className="text-xs uppercase text-gray-400">Brands / TCMI</p>
-        <h1 className="text-4xl italic">Music Institute</h1>
-      </div>
-
-
-      {/* TOP BAR */}
-      <div className="flex justify-between items-center gap-3 flex-wrap">
-
-
-        <input
-          placeholder="Search student..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="border px-3 py-2 rounded-md w-full max-w-sm"
-        />
-
-
-        <div className="flex gap-2">
-
-
-          <select
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            className="border px-3 py-2 rounded-md"
-          >
-            <option>All</option>
-            <option>Active</option>
-            <option>Completed</option>
-          </select>
-
-
-          <button
-            onClick={() => {
-              setEditStudent(null);
-              setOpenForm(true);
-            }}
-            className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-md"
-          >
-            <FiUserPlus size={16} />
-            Add Student
-          </button>
-
 
 const Modal = ({ title, fields, onClose }) => (
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
@@ -285,7 +193,7 @@ const Modal = ({ title, fields, onClose }) => (
         </button>
       </div>
 
-        </div>
+    
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {fields.map((field) => (
           <label key={field} className="text-sm text-gray-600">
@@ -298,8 +206,7 @@ const Modal = ({ title, fields, onClose }) => (
         ))}
       </div>
 
-      {/* TABLE */}
-      <div className="border border-gray-200 rounded-lg overflow-hidden">
+      
       <div className="mt-6 flex flex-wrap justify-end gap-3">
         <button onClick={onClose} className="rounded-lg border border-gray-300 px-4 py-2 text-sm transition hover:border-black">Cancel</button>
         <button className="rounded-lg bg-black px-4 py-2 text-sm text-white transition hover:bg-gray-800">Save</button>
@@ -308,14 +215,6 @@ const Modal = ({ title, fields, onClose }) => (
   </div>
 );
 
-        {/* HEADER */}
-        <div className="grid grid-cols-5 text-xs uppercase text-gray-500 bg-gray-50 px-4 py-3 border-b">
-          <div>Name</div>
-          <div>Course</div>
-          <div>Date</div>
-          <div>Status</div>
-          <div>Action</div>
-        </div>
 const TCMI = () => {
   const [activeSection, setActiveSection] = useState("Dashboard");
   const [activeSubSection, setActiveSubSection] = useState(sectionSubSections.Dashboard[0]);
@@ -335,26 +234,8 @@ const TCMI = () => {
     [searchText, statusFilter]
   );
 
-        {/* ROWS */}
-        {filteredData.length === 0 ? (
-          <div className="p-6 text-center text-sm text-gray-400">
-            No students found
-          </div>
-        ) : (
-          filteredData.map((item) => (
-            <div
-              key={item.id}
-              className="grid grid-cols-5 px-4 py-3 border-b text-sm items-center hover:bg-gray-50"
-            >
-              <div>{item.name}</div>
-              <div>{item.course}</div>
-              <div>{item.date}</div>
-
-              <div>
-                <span className="text-xs px-2 py-1 rounded-full border border-green-600 text-green-600">
-                  {item.status}
-                </span>
-              </div>
+       
+              
   const filteredStudents = useMemo(
     () =>
       studentData.filter((student) => {
@@ -368,27 +249,7 @@ const TCMI = () => {
     [searchText]
   );
 
-              {/* ACTIONS */}
-              <div className="flex gap-2">
-
-                {/* VIEW */}
-                <button
-                  onClick={() => setViewStudent(item.fullData)}
-                  className="p-2 border rounded hover:bg-gray-100"
-                >
-                  <FiEye />
-                </button>
-
-                {/* EDIT */}
-                <button
-                  onClick={() => {
-                    setEditStudent(item);
-                    setOpenForm(true);
-                  }}
-                  className="p-2 border rounded hover:bg-gray-100"
-                >
-                  <FiEdit2 />
-                </button>
+             
   const switchSection = (section) => {
     setActiveSection(section);
     setActiveSubSection(sectionSubSections[section][0]);
@@ -428,30 +289,8 @@ const TCMI = () => {
               <h2 className="text-sm uppercase tracking-[0.16em]" style={headingStyle}>Lead Management</h2>
               <FiChevronRight className="text-gray-500" />
             </div>
-          ))
-        )}
-      </div>
+         
 
-      {/* FORM */}
-      <StudentForm
-        isOpen={openForm}
-        onClose={() => {
-          setOpenForm(false);
-          setEditStudent(null);
-        }}
-        onSubmit={handleAddStudent}
-        editData={editStudent?.fullData} 
-      />
-
-      {/* VIEW MODAL */}
-      {viewStudent && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-
-          <div className="bg-white w-full max-w-2xl p-6 rounded-xl space-y-4 max-h-[80vh] overflow-y-auto">
-
-            <div className="flex justify-between items-center">
-              <h2 className="text-lg font-medium">Student Details</h2>
-              <button onClick={() => setViewStudent(null)}>✕</button>
             <div className="overflow-x-auto rounded-xl border border-gray-200">
               <TableHeader titles={["Lead", "Status", "Source", "Follow-up", "Notes"]} />
               {filteredLeads.map((lead) => (
@@ -465,12 +304,7 @@ const TCMI = () => {
               ))}
             </div>
 
-            <div className="grid grid-cols-2 gap-4 text-sm">
-
-              {Object.entries(viewStudent).map(([key, value]) => (
-                <div key={key}>
-                  <p className="text-gray-400 text-xs capitalize">{key}</p>
-                  <p>{value?.toString()}</p>
+          
             <div className="mt-4 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
               <button className="rounded-lg border border-gray-300 p-2 text-left transition hover:border-black"><FiClock className="mb-1" /> Follow-up reminders</button>
               <button className="rounded-lg border border-gray-300 p-2 text-left transition hover:border-black"><FiUserCheck className="mb-1" /> Convert lead to student</button>
@@ -628,7 +462,7 @@ const TCMI = () => {
         </div>
       </div>
 
-          </div>
+      
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div className="relative sm:col-span-2 lg:col-span-2">
           <FiSearch className="pointer-events-none absolute left-3 top-3.5 text-gray-400" />
@@ -639,7 +473,7 @@ const TCMI = () => {
             className="w-full rounded-xl border border-gray-300 bg-white py-3 pl-10 pr-4 text-sm outline-none transition focus:border-black"
           />
         </div>
-      )}
+   
 
         <div className="relative">
           <FiFilter className="pointer-events-none absolute left-3 top-3.5 text-gray-400" />
@@ -692,5 +526,6 @@ const TCMI = () => {
     </div>
   );
 };
+
 
 export default TCMI;
