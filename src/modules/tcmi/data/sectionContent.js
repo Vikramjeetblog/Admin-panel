@@ -168,6 +168,12 @@ export const tcmiSectionContent = {
   batches: {
     title: "Batches",
     description: "Schedule and trainer management for all morning, evening, and weekend cohorts.",
+    featureTitle: "Batch Management Features",
+    featureCards: [
+      { title: "Batch Creation", description: "Create and maintain new batches with course, start date, and mode details." },
+      { title: "Assign Students & Trainers", description: "Map enrolled students and trainers to each batch for clear ownership." },
+      { title: "Schedule Timing", description: "Set and manage batch timings across weekdays, weekends, and special sessions." },
+    ],
   },
   attendance: {
     title: "Attendance",
