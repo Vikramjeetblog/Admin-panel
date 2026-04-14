@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
 import { FiEdit2, FiEye, FiPlus } from "react-icons/fi";
 import { tcmiAttendanceRows, tcmiBatchRows, tcmiCertificateRows, tcmiCourseCatalog, tcmiDocumentRows, tcmiExamRows, tcmiFinanceRows, tcmiLeadRows, tcmiStudentRows } from "../data/sectionContent";
@@ -40,7 +40,7 @@ const defaultExamModuleForm = { examName: "", batch: "", student: "", theoryMark
 const defaultCertificateForm = { student: "", batch: "", type: "Certificate", grade: "", issueDate: "" };
 const defaultDocumentForm = { student: "", batch: "", docType: "Registration Form", fileName: "", uploadedOn: "" };
 
-const TCMIOverviewPanel = ({ content }) => {
+const TCMIOverviewPanel = ({ content, globalSearch = "", role = "Admin" }) => {
   const [selectedStudentId, setSelectedStudentId] = useState(tcmiStudentRows[0].id);
   const [openStudentModal, setOpenStudentModal] = useState(false);
   const [openCourseModal, setOpenCourseModal] = useState(false);
@@ -87,6 +87,13 @@ const TCMIOverviewPanel = ({ content }) => {
   const [documentModal, setDocumentModal] = useState(false);
   const [documentForm, setDocumentForm] = useState(defaultDocumentForm);
   const [documentErrors, setDocumentErrors] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [selectedLeadIds, setSelectedLeadIds] = useState([]);
+  const [selectedStudentIds, setSelectedStudentIds] = useState([]);
+  const [leadSort, setLeadSort] = useState({ key: "name", order: "asc" });
+  const [studentSort, setStudentSort] = useState({ key: "name", order: "asc" });
+  const [leadPage, setLeadPage] = useState(1);
+  const [studentPage, setStudentPage] = useState(1);
 
   if (!content) return null;
 
@@ -102,11 +109,45 @@ const TCMIOverviewPanel = ({ content }) => {
   const isExams = content.title === "Exams";
   const isCertificates = content.title === "Certificates";
   const isDocuments = content.title === "Documents";
-  const isFinance = content.title === "Finance";
+  const isFinance = content.title === "Finance" && role !== "Faculty";
   const showFeatureCards = featureCards.length > 0 && !isStudents && !isLeads;
 
   const selectedStudent = studentRows.find((student) => student.id === selectedStudentId) || studentRows[0];
   const activeLead = leadRows.find((lead) => lead.id === leadModal.leadId);
+  const pageSize = 5;
+
+  useEffect(() => {
+    setLoading(true);
+    const timer = setTimeout(() => setLoading(false), 180);
+    return () => clearTimeout(timer);
+  }, [content?.title]);
+
+  const filteredLeadRows = useMemo(() => {
+    const query = globalSearch.trim().toLowerCase();
+    const rows = query
+      ? leadRows.filter((lead) => [lead.name, lead.source, lead.status || ""].join(" ").toLowerCase().includes(query))
+      : leadRows;
+    const sorted = [...rows].sort((a, b) => {
+      const left = String(a[leadSort.key] || "").toLowerCase();
+      const right = String(b[leadSort.key] || "").toLowerCase();
+      return leadSort.order === "asc" ? left.localeCompare(right) : right.localeCompare(left);
+    });
+    return sorted;
+  }, [globalSearch, leadRows, leadSort]);
+
+  const filteredStudentRows = useMemo(() => {
+    const query = globalSearch.trim().toLowerCase();
+    const rows = query ? studentRows.filter((student) => [student.name, student.course, student.batch].join(" ").toLowerCase().includes(query)) : studentRows;
+    const sorted = [...rows].sort((a, b) => {
+      const left = String(a[studentSort.key] || "").toLowerCase();
+      const right = String(b[studentSort.key] || "").toLowerCase();
+      return studentSort.order === "asc" ? left.localeCompare(right) : right.localeCompare(left);
+    });
+    return sorted;
+  }, [globalSearch, studentRows, studentSort]);
+
+  const pagedLeads = filteredLeadRows.slice((leadPage - 1) * pageSize, leadPage * pageSize);
+  const pagedStudents = filteredStudentRows.slice((studentPage - 1) * pageSize, studentPage * pageSize);
 
   const openLeadDialog = (mode, lead = null) => {
     setLeadErrors({});
@@ -130,7 +171,7 @@ const TCMIOverviewPanel = ({ content }) => {
 
   const saveLead = () => {
     if (!validateLeadForm()) return;
-    const payload = { name: leadForm.name.trim(), source: leadForm.source.trim(), leadPercentage: Number(leadForm.leadPercentage), followUp: leadForm.followUp, notes: leadForm.notes.trim(), converted: false };
+    const payload = { name: leadForm.name.trim(), source: leadForm.source.trim(), status: activeLead?.status || "Warm", leadPercentage: Number(leadForm.leadPercentage), followUp: leadForm.followUp, notes: leadForm.notes.trim(), converted: false };
     if (leadModal.mode === "add") setLeadRows((prev) => [{ ...payload, id: `LD-${1000 + prev.length + 1}` }, ...prev]);
     else setLeadRows((prev) => prev.map((lead) => (lead.id === leadModal.leadId ? { ...lead, ...payload, converted: lead.converted } : lead)));
     setLeadModal({ open: false, mode: "add", leadId: null });
@@ -502,12 +543,13 @@ const TCMIOverviewPanel = ({ content }) => {
   };
 
   return (
-    <section className="rounded-2xl border border-[var(--tcmi-border)] bg-white p-5 lg:p-7">
+    <section className="rounded-lg border border-[var(--tcmi-border)] bg-white p-3 lg:p-4">
       <div className="flex flex-col gap-2 border-b border-[var(--tcmi-border)] pb-5">
         <p className="font-body text-[11px] uppercase tracking-[0.16em] text-[var(--tcmi-muted)]">Section Overview</p>
         <h3 className="font-heading text-3xl text-[var(--tcmi-text)]">{content.title}</h3>
         {!isLeads && <p className="max-w-3xl font-body text-sm text-[var(--tcmi-muted)]">{content.description}</p>}
       </div>
+      {loading && <div className="mt-3 rounded-lg border border-[var(--tcmi-border)] bg-[var(--tcmi-soft)] p-3 text-sm">Loading...</div>}
 
       {showFeatureCards && (
         <div className="mt-5 border-b border-[var(--tcmi-border)] pb-5">
@@ -526,15 +568,72 @@ const TCMIOverviewPanel = ({ content }) => {
 
       {isLeads && (
         <div className="mt-5 border-b border-[var(--tcmi-border)] pb-5">
-          <div className="mb-3 flex items-center justify-between"><p className="font-body text-[11px] uppercase tracking-[0.16em] text-[var(--tcmi-muted)]">Lead Actions & Tracking</p><button type="button" onClick={() => openLeadDialog("add")} className="rounded-lg border border-black bg-black px-3 py-2 font-body text-xs text-white transition hover:bg-gray-800">+ Add Lead</button></div>
-          <div className="overflow-x-auto rounded-xl border border-[var(--tcmi-border)]"><table className="min-w-full border-collapse"><thead className="bg-[var(--tcmi-soft)]"><tr className="font-body text-[11px] uppercase tracking-[0.12em] text-[var(--tcmi-muted)]"><th className="px-3 py-2 text-left">Lead</th><th className="px-3 py-2 text-left">Source</th><th className="px-3 py-2 text-left">Lead %</th><th className="px-3 py-2 text-left">Follow-up</th><th className="px-3 py-2 text-left">Actions</th></tr></thead><tbody>{leadRows.map((lead) => (<tr key={lead.id} className="border-t border-[var(--tcmi-border)] font-body text-sm"><td className="px-3 py-2">{lead.name}</td><td className="px-3 py-2 text-[var(--tcmi-muted)]">{lead.source}</td><td className="px-3 py-2">{lead.leadPercentage}%</td><td className="px-3 py-2">{format(new Date(lead.followUp), "dd/MM/yy")}</td><td className="px-3 py-2"><div className="flex gap-2"><button onClick={() => openLeadDialog("view", lead)} className="rounded border border-[var(--tcmi-border)] px-2 py-1 text-xs hover:border-black">View</button><button onClick={() => openLeadDialog("edit", lead)} className="rounded border border-[var(--tcmi-border)] px-2 py-1 text-xs hover:border-black">Edit</button><button onClick={() => setLeadRows((prev) => prev.map((row) => (row.id === lead.id ? { ...row, converted: true } : row)))} disabled={lead.converted} className="rounded border border-black px-2 py-1 text-xs hover:bg-black hover:text-white disabled:cursor-not-allowed disabled:border-gray-300 disabled:text-gray-400">{lead.converted ? "Converted" : "Convert"}</button></div></td></tr>))}</tbody></table></div>
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <p className="font-body text-[11px] uppercase tracking-[0.16em] text-[var(--tcmi-muted)]">Lead Actions & Tracking</p>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => openLeadDialog("add")} className="rounded-lg border border-black bg-black px-3 py-2 font-body text-xs text-white transition hover:bg-gray-800">+ Add Lead</button>
+              <button type="button" onClick={() => setLeadRows((prev) => prev.filter((lead) => !selectedLeadIds.includes(lead.id)))} className="rounded-lg border border-[var(--tcmi-border)] px-3 py-2 text-xs">Bulk Delete</button>
+              <button type="button" onClick={() => setLeadRows((prev) => prev.map((lead) => (selectedLeadIds.includes(lead.id) ? { ...lead, status: "Hot" } : lead)))} className="rounded-lg border border-[var(--tcmi-border)] px-3 py-2 text-xs">Mark Hot</button>
+            </div>
+          </div>
+          <div className="overflow-x-auto rounded-xl border border-[var(--tcmi-border)]">
+            <table className="min-w-full border-collapse">
+              <thead className="bg-[var(--tcmi-soft)]">
+                <tr className="font-body text-[11px] uppercase tracking-[0.12em] text-[var(--tcmi-muted)]">
+                  <th className="px-3 py-2 text-left"><input type="checkbox" checked={pagedLeads.length > 0 && pagedLeads.every((lead) => selectedLeadIds.includes(lead.id))} onChange={(e) => setSelectedLeadIds(e.target.checked ? pagedLeads.map((lead) => lead.id) : [])} /></th>
+                  <th className="px-3 py-2 text-left cursor-pointer" onClick={() => setLeadSort((prev) => ({ key: "name", order: prev.order === "asc" ? "desc" : "asc" }))}>Lead ↑↓</th>
+                  <th className="px-3 py-2 text-left">Source</th>
+                  <th className="px-3 py-2 text-left">Status</th>
+                  <th className="px-3 py-2 text-left">Lead %</th>
+                  <th className="px-3 py-2 text-left cursor-pointer" onClick={() => setLeadSort((prev) => ({ key: "followUp", order: prev.order === "asc" ? "desc" : "asc" }))}>Follow-up ↑↓</th>
+                  <th className="px-3 py-2 text-left">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pagedLeads.length === 0 && (
+                  <tr><td colSpan={7} className="px-3 py-6 text-center text-sm text-[var(--tcmi-muted)]">No leads found. Start by adding a new lead.</td></tr>
+                )}
+                {pagedLeads.map((lead) => (
+                  <tr key={lead.id} className="border-t border-[var(--tcmi-border)] font-body text-sm">
+                    <td className="px-3 py-2"><input type="checkbox" checked={selectedLeadIds.includes(lead.id)} onChange={(e) => setSelectedLeadIds((prev) => e.target.checked ? [...prev, lead.id] : prev.filter((id) => id !== lead.id))} /></td>
+                    <td className="px-3 py-2">{lead.name}</td>
+                    <td className="px-3 py-2 text-[var(--tcmi-muted)]">{lead.source}</td>
+                    <td className="px-3 py-2">
+                      <select value={lead.status || "Warm"} onChange={(e) => setLeadRows((prev) => prev.map((row) => (row.id === lead.id ? { ...row, status: e.target.value } : row)))} className={`rounded px-2 py-1 text-xs ${lead.status === "Hot" ? "bg-red-100 text-red-700" : lead.status === "Warm" ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700"}`}>
+                        <option>Hot</option><option>Warm</option><option>Cold</option>
+                      </select>
+                    </td>
+                    <td className="px-3 py-2">{lead.leadPercentage}%</td>
+                    <td className="px-3 py-2">{format(new Date(lead.followUp), "dd/MM/yy")}</td>
+                    <td className="px-3 py-2">
+                      <div className="flex gap-2">
+                        <button onClick={() => openLeadDialog("view", lead)} className="rounded border border-[var(--tcmi-border)] px-2 py-1 text-xs">👁</button>
+                        <button onClick={() => openLeadDialog("edit", lead)} className="rounded border border-[var(--tcmi-border)] px-2 py-1 text-xs">✏️</button>
+                        <button onClick={() => setLeadRows((prev) => prev.filter((row) => row.id !== lead.id))} className="rounded border border-[var(--tcmi-border)] px-2 py-1 text-xs">🗑</button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="mt-2 flex items-center justify-end gap-2">
+            <button onClick={() => setLeadPage((p) => Math.max(p - 1, 1))} className="rounded border px-2 py-1 text-xs">Prev</button>
+            <span className="text-xs">Page {leadPage}</span>
+            <button onClick={() => setLeadPage((p) => (p * pageSize < filteredLeadRows.length ? p + 1 : p))} className="rounded border px-2 py-1 text-xs">Next</button>
+          </div>
         </div>
       )}
 
       {isStudents && (
         <div className="mt-5 space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-2"><p className="font-body text-[11px] uppercase tracking-[0.16em] text-[var(--tcmi-muted)]">Student Operations</p><div className="flex gap-2"><button onClick={() => openStudentDialog("add")} className="rounded-lg border border-black bg-black px-3 py-2 text-xs text-white">+ Enroll Student</button></div></div>
-          <div className="rounded-xl border border-[var(--tcmi-border)]"><div className="border-b border-[var(--tcmi-border)] bg-[var(--tcmi-soft)] px-4 py-3 font-body text-[11px] uppercase tracking-[0.12em] text-[var(--tcmi-muted)]">Detailed Student Table</div><div className="overflow-x-auto"><table className="min-w-full border-collapse"><thead><tr className="font-body text-[11px] uppercase tracking-[0.12em] text-[var(--tcmi-muted)]"><th className="px-3 py-2 text-left">Student</th><th className="px-3 py-2 text-left">Course</th><th className="px-3 py-2 text-left">Batch</th><th className="px-3 py-2 text-left">Fees</th><th className="px-3 py-2 text-left">Attendance</th><th className="px-3 py-2 text-left">Exam</th><th className="px-3 py-2 text-left">Actions</th></tr></thead><tbody>{studentRows.map((student) => (<tr key={student.id} className="border-t border-[var(--tcmi-border)] font-body text-sm"><td className="px-3 py-2">{student.name}</td><td className="px-3 py-2">{student.course}</td><td className="px-3 py-2">{student.batch}</td><td className="px-3 py-2">{student.fees}</td><td className="px-3 py-2">{student.attendance}</td><td className="px-3 py-2">{student.exam}</td><td className="px-3 py-2"><div className="flex gap-2"><button onClick={() => { setSelectedStudentId(student.id); setOpenStudentModal(true); }} className="rounded border border-[var(--tcmi-border)] p-2 hover:border-black" aria-label="View profile"><FiEye size={14} /></button><button onClick={() => openStudentDialog("edit", student)} className="rounded border border-[var(--tcmi-border)] p-2 hover:border-black" aria-label="Edit student"><FiEdit2 size={14} /></button></div></td></tr>))}</tbody></table></div></div>
+          <div className="flex flex-wrap items-center justify-between gap-2"><p className="font-body text-[11px] uppercase tracking-[0.16em] text-[var(--tcmi-muted)]">Student Operations</p><div className="flex gap-2"><button onClick={() => openStudentDialog("add")} className="rounded-lg border border-black bg-black px-3 py-2 text-xs text-white">+ Enroll Student</button><button onClick={() => setStudentRows((prev) => prev.filter((student) => !selectedStudentIds.includes(student.id)))} className="rounded-lg border px-3 py-2 text-xs">Bulk Delete</button><button onClick={() => console.log("Export selected students", selectedStudentIds)} className="rounded-lg border px-3 py-2 text-xs">Bulk Export</button></div></div>
+          <div className="rounded-xl border border-[var(--tcmi-border)]"><div className="border-b border-[var(--tcmi-border)] bg-[var(--tcmi-soft)] px-4 py-3 font-body text-[11px] uppercase tracking-[0.12em] text-[var(--tcmi-muted)]">Detailed Student Table</div><div className="overflow-x-auto"><table className="min-w-full border-collapse"><thead><tr className="font-body text-[11px] uppercase tracking-[0.12em] text-[var(--tcmi-muted)]"><th className="px-3 py-2 text-left"><input type="checkbox" checked={pagedStudents.length > 0 && pagedStudents.every((student) => selectedStudentIds.includes(student.id))} onChange={(e) => setSelectedStudentIds(e.target.checked ? pagedStudents.map((student) => student.id) : [])} /></th><th className="px-3 py-2 text-left cursor-pointer" onClick={() => setStudentSort((prev) => ({ key: "name", order: prev.order === "asc" ? "desc" : "asc" }))}>Student ↑↓</th><th className="px-3 py-2 text-left">Course</th><th className="px-3 py-2 text-left cursor-pointer" onClick={() => setStudentSort((prev) => ({ key: "batch", order: prev.order === "asc" ? "desc" : "asc" }))}>Batch ↑↓</th><th className="px-3 py-2 text-left">Fees</th><th className="px-3 py-2 text-left">Attendance</th><th className="px-3 py-2 text-left">Exam</th><th className="px-3 py-2 text-left">Actions</th></tr></thead><tbody>{pagedStudents.length === 0 && <tr><td colSpan={8} className="px-3 py-6 text-center text-sm text-[var(--tcmi-muted)]">No students found. Start by adding a new student.</td></tr>}{pagedStudents.map((student) => (<tr key={student.id} className="border-t border-[var(--tcmi-border)] font-body text-sm"><td className="px-3 py-2"><input type="checkbox" checked={selectedStudentIds.includes(student.id)} onChange={(e) => setSelectedStudentIds((prev) => e.target.checked ? [...prev, student.id] : prev.filter((id) => id !== student.id))} /></td><td className="px-3 py-2">{student.name}</td><td className="px-3 py-2">{student.course}</td><td className="px-3 py-2">{student.batch}</td><td className="px-3 py-2">{student.fees}</td><td className="px-3 py-2">{student.attendance}</td><td className="px-3 py-2">{student.exam}</td><td className="px-3 py-2"><div className="flex gap-2"><button onClick={() => { setSelectedStudentId(student.id); setOpenStudentModal(true); }} className="rounded border border-[var(--tcmi-border)] p-2 hover:border-black" aria-label="View profile"><FiEye size={14} /></button><button onClick={() => openStudentDialog("edit", student)} className="rounded border border-[var(--tcmi-border)] p-2 hover:border-black" aria-label="Edit student"><FiEdit2 size={14} /></button><button onClick={() => setStudentRows((prev) => prev.filter((row) => row.id !== student.id))} className="rounded border border-[var(--tcmi-border)] p-2 hover:border-black" aria-label="Delete student">🗑</button></div></td></tr>))}</tbody></table></div></div>
+          <div className="mt-2 flex items-center justify-end gap-2">
+            <button onClick={() => setStudentPage((p) => Math.max(p - 1, 1))} className="rounded border px-2 py-1 text-xs">Prev</button>
+            <span className="text-xs">Page {studentPage}</span>
+            <button onClick={() => setStudentPage((p) => (p * pageSize < filteredStudentRows.length ? p + 1 : p))} className="rounded border px-2 py-1 text-xs">Next</button>
+          </div>
         </div>
       )}
 
