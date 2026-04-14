@@ -1,10 +1,5 @@
 
 
-src/pages/TCMI.jsx
-src/pages/TCMI.jsx
-+474
--184
-
 import React, { useState } from "react";
 import { FiUserPlus, FiEye, FiEdit2 } from "react-icons/fi";
 import StudentForm from "../components/forms/EnrollStudentForm";
