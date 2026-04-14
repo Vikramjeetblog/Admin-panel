@@ -210,6 +210,9 @@ const statusClass = {
   Pending: "bg-white text-black border-black",
   Installment: "bg-gray-100 text-black border-gray-300",
 };
+
+const headingStyle = { fontFamily: '"Cooper Hewitt Heavy", "Syne", sans-serif' };
+const bodyStyle = { fontFamily: '"Canva Sans", "Inter", "JetBrains Mono", sans-serif' };
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
 
@@ -259,8 +262,6 @@ const statusClass = {
           </button>
 const cardClass = "rounded-2xl border border-gray-200 bg-white p-4 sm:p-5 transition duration-200 hover:border-black";
 
-const headingStyle = { fontFamily: '"Cooper Hewitt Heavy", "Syne", sans-serif' };
-const bodyStyle = { fontFamily: '"Canva Sans", "Inter", "JetBrains Mono", sans-serif' };
 
 const TableHeader = ({ titles }) => (
   <div
@@ -438,7 +439,7 @@ const TCMI = () => {
           setEditStudent(null);
         }}
         onSubmit={handleAddStudent}
-        editData={editStudent?.fullData} // 🔥 IMPORTANT
+        editData={editStudent?.fullData} 
       />
 
       {/* VIEW MODAL */}
