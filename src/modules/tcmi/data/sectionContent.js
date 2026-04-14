@@ -112,6 +112,27 @@ export const tcmiCourseCatalog = [
   },
 ];
 
+export const tcmiBatchRows = [
+  {
+    id: "BAT-201",
+    batchName: "PIA-L2-EVE",
+    course: "Certification L2",
+    trainer: "Meera Joshi",
+    students: 24,
+    schedule: "Mon, Wed, Fri · 6:30 PM - 8:00 PM",
+    mode: "Offline",
+  },
+  {
+    id: "BAT-202",
+    batchName: "VOC-L4-WKD",
+    course: "Certification L4",
+    trainer: "Arjun Dey",
+    students: 18,
+    schedule: "Sat, Sun · 10:00 AM - 12:00 PM",
+    mode: "Hybrid",
+  },
+];
+
 
 export const tcmiFinanceRows = [
   {
@@ -168,6 +189,12 @@ export const tcmiSectionContent = {
   batches: {
     title: "Batches",
     description: "Schedule and trainer management for all morning, evening, and weekend cohorts.",
+    featureTitle: "Batch Management Features",
+    featureCards: [
+      { title: "Batch Creation", description: "Create and maintain new batches with course, start date, and mode details." },
+      { title: "Assign Students & Trainers", description: "Map enrolled students and trainers to each batch for clear ownership." },
+      { title: "Schedule Timing", description: "Set and manage batch timings across weekdays, weekends, and special sessions." },
+    ],
   },
   attendance: {
     title: "Attendance",
