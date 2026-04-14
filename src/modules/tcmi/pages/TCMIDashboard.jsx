@@ -24,10 +24,6 @@ const TCMIDashboard = () => {
         <div className="mt-3 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <h1 className="font-heading text-4xl text-[var(--tcmi-text)] lg:text-5xl">TCMI Admin Panel</h1>
-            <p className="mt-2 max-w-3xl font-body text-sm text-[var(--tcmi-muted)]">
-              Minimal and premium operations console for the TCMI business unit. Structured for scale so additional
-              modules can plug in without changing the global navbar architecture.
-            </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <input

@@ -4,10 +4,6 @@ import { FiDownload, FiEdit2, FiEye, FiPlus, FiTrash2 } from "react-icons/fi";
 import { tcmiAttendanceRows, tcmiBatchRows, tcmiCertificateRows, tcmiCourseCatalog, tcmiDocumentRows, tcmiExamRows, tcmiFinanceRows, tcmiStudentRows } from "../data/sectionContent";
 import LeadsModule from "../modules/LeadsModule";
 
-const fallbackFeaturesByTitle = {
-  "Module Dashboard": { featureTitle: "Dashboard Features", featureCards: [] },
-};
-
 const defaultStudentForm = {
   name: "",
   dob: "",
@@ -88,11 +84,6 @@ const TCMIOverviewPanel = ({ content, globalSearch = "", role = "Admin" }) => {
   const [toastMessage, setToastMessage] = useState("");
   const [confirmDialog, setConfirmDialog] = useState({ open: false, type: "", payload: null, message: "" });
 
-
-  const fallbackBlock = fallbackFeaturesByTitle[content.title] || { featureCards: [], featureTitle: "Features" };
-  const featureCards = Array.isArray(content.featureCards) && content.featureCards.length > 0 ? content.featureCards : fallbackBlock.featureCards;
-  const featureTitle = content.featureTitle || fallbackBlock.featureTitle;
-
   const isLeads = content.title === "Leads";
   const isStudents = content.title === "Students";
   const isCourses = content.title === "Courses";
@@ -102,7 +93,6 @@ const TCMIOverviewPanel = ({ content, globalSearch = "", role = "Admin" }) => {
   const isCertificates = content.title === "Certificates";
   const isDocuments = content.title === "Documents";
   const isFinance = content.title === "Finance" && role !== "Faculty";
-  const showFeatureCards = featureCards.length > 0 && !isStudents && !isLeads;
 
   const selectedStudent = studentRows.find((student) => student.id === selectedStudentId) || studentRows[0];
   const pageSize = 5;
@@ -518,22 +508,7 @@ const TCMIOverviewPanel = ({ content, globalSearch = "", role = "Admin" }) => {
       <div className="flex flex-col gap-2 border-b border-[var(--tcmi-border)] pb-5">
         <p className="font-body text-[11px] uppercase tracking-[0.16em] text-[var(--tcmi-muted)]">Section Overview</p>
         <h3 className="font-heading text-3xl text-[var(--tcmi-text)]">{content.title}</h3>
-        {!isLeads && <p className="max-w-3xl font-body text-sm text-[var(--tcmi-muted)]">{content.description}</p>}
       </div>
-      {showFeatureCards && (
-        <div className="mt-5 border-b border-[var(--tcmi-border)] pb-5">
-          <p className="font-body text-[11px] uppercase tracking-[0.16em] text-[var(--tcmi-muted)]">{featureTitle}</p>
-          <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {featureCards.map((feature) => (
-              <article key={feature.title} className="rounded-xl border border-[var(--tcmi-border)] bg-[var(--tcmi-soft)] p-4">
-                <p className="font-heading text-lg text-[var(--tcmi-text)]">{feature.title}</p>
-                {feature.value && <p className="mt-2 font-heading text-2xl text-[var(--tcmi-text)]">{feature.value}</p>}
-                {feature.description && <p className="mt-2 font-body text-xs text-[var(--tcmi-muted)]">{feature.description}</p>}
-              </article>
-            ))}
-          </div>
-        </div>
-      )}
 
       {isLeads && <LeadsModule globalSearch={globalSearch} />}
 
