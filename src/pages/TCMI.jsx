@@ -131,7 +131,7 @@ const batchData = [
   { code: "GTR-L3-MOR", trainer: "Karan Singh", timing: "Tue-Thu | 9:00 AM", students: 16 },
 ];
 
-     >
+    
 const examData = [
   { exam: "Quarterly Skill Assessment", batch: "VOC-L4-WKD", date: "22 Apr 2026", marksType: "Theory + Practical" },
   { exam: "Diploma Mid-Term", batch: "SD-DIP-MOR", date: "26 Apr 2026", marksType: "Practical" },
