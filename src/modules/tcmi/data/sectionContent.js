@@ -145,6 +145,15 @@ export const tcmiExamRows = [
   { id: "EX-1002", examName: "Midterm Practical", batch: "PIA-L2-EVE", student: "Ritvik Suri", theoryMarks: 35, practicalMarks: 37, totalMarks: 72, grade: "B+", examDate: "2026-04-18" },
 ];
 
+export const tcmiCertificateRows = [
+  { id: "CERT-1001", student: "Ishita Sen", batch: "VOC-L4-WKD", type: "Certificate", grade: "A+", issueDate: "2026-04-10", qrCode: "TCMI-CERT-1001" },
+];
+
+export const tcmiDocumentRows = [
+  { id: "DOC-1001", student: "Nisha Mehta", batch: "PIA-L2-EVE", docType: "Registration Form", fileName: "nisha-registration.pdf", status: "Verified", uploadedOn: "2026-04-05" },
+  { id: "DOC-1002", student: "Nisha Mehta", batch: "PIA-L2-EVE", docType: "ID Proof", fileName: "nisha-aadhar.pdf", status: "Pending", uploadedOn: "2026-04-08" },
+];
+
 
 export const tcmiFinanceRows = [
   {
