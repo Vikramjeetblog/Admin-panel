@@ -55,7 +55,7 @@ const sectionSubSections = {
   Documents: ["Registration", "ID Proofs", "Student Files"],
 };
 
-const initialStudents = [
+
 const dashboardStats = [
   { label: "Total Students", value: "1,280", icon: FiUsers },
   { label: "New Leads", value: "146", icon: FiTarget },
