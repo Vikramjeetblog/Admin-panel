@@ -11,7 +11,6 @@ import {
   FiCreditCard,
   FiDollarSign,
   FiDownload,
-  FiEdit2,
   FiFileText,
   FiFilter,
   FiFolder,
