@@ -37,7 +37,6 @@ const TCMIDashboard = () => {
               <div key={item.label} className="rounded-lg border border-[var(--tcmi-border)] bg-[var(--tcmi-soft)] p-4">
                 <p className="font-heading text-2xl text-[var(--tcmi-text)]">{item.value}</p>
                 <p className="mt-1 font-body text-xs uppercase tracking-[0.12em] text-[var(--tcmi-muted)]">{item.label}</p>
-                <p className="mt-1 font-body text-xs text-[var(--tcmi-muted)]">{item.hint}</p>
               </div>
             ))}
           </div>
