@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { format } from "date-fns";
 import { FiEdit2, FiEye, FiPlus } from "react-icons/fi";
-import { tcmiBatchRows, tcmiCourseCatalog, tcmiFinanceRows, tcmiLeadRows, tcmiStudentRows } from "../data/sectionContent";
+import { tcmiAttendanceRows, tcmiBatchRows, tcmiCourseCatalog, tcmiExamRows, tcmiFinanceRows, tcmiLeadRows, tcmiStudentRows } from "../data/sectionContent";
 
 const fallbackFeaturesByTitle = {
   "Module Dashboard": { featureTitle: "Dashboard Features", featureCards: [] },
@@ -35,6 +35,8 @@ const defaultBatchForm = {
   schedule: "",
   mode: "Offline",
 };
+const defaultAttendanceForm = { date: "", batch: "", student: "", status: "Present" };
+const defaultExamModuleForm = { examName: "", batch: "", student: "", theoryMarks: "", practicalMarks: "", examDate: "" };
 
 const TCMIOverviewPanel = ({ content }) => {
   const [selectedStudentId, setSelectedStudentId] = useState(tcmiStudentRows[0].id);
@@ -67,6 +69,14 @@ const TCMIOverviewPanel = ({ content }) => {
   const [batchModal, setBatchModal] = useState(false);
   const [batchForm, setBatchForm] = useState(defaultBatchForm);
   const [batchErrors, setBatchErrors] = useState({});
+  const [attendanceRows, setAttendanceRows] = useState(tcmiAttendanceRows);
+  const [attendanceModal, setAttendanceModal] = useState(false);
+  const [attendanceForm, setAttendanceForm] = useState(defaultAttendanceForm);
+  const [attendanceErrors, setAttendanceErrors] = useState({});
+  const [examRows, setExamRows] = useState(tcmiExamRows);
+  const [examModuleModal, setExamModuleModal] = useState(false);
+  const [examModuleForm, setExamModuleForm] = useState(defaultExamModuleForm);
+  const [examModuleErrors, setExamModuleErrors] = useState({});
 
   if (!content) return null;
 
@@ -78,6 +88,8 @@ const TCMIOverviewPanel = ({ content }) => {
   const isStudents = content.title === "Students";
   const isCourses = content.title === "Courses";
   const isBatches = content.title === "Batches";
+  const isAttendance = content.title === "Attendance";
+  const isExams = content.title === "Exams";
   const isFinance = content.title === "Finance";
   const showFeatureCards = featureCards.length > 0 && !isStudents && !isLeads;
 
@@ -323,6 +335,103 @@ const TCMIOverviewPanel = ({ content }) => {
     setBatchModal(false);
   };
 
+  const openAttendanceDialog = () => {
+    setAttendanceErrors({});
+    setAttendanceForm({ ...defaultAttendanceForm, date: format(new Date(), "yyyy-MM-dd") });
+    setAttendanceModal(true);
+  };
+
+  const saveAttendance = () => {
+    const errors = {};
+    if (!attendanceForm.date) errors.date = "Date is required.";
+    if (!attendanceForm.batch.trim()) errors.batch = "Batch is required.";
+    if (!attendanceForm.student.trim()) errors.student = "Student is required.";
+    if (!attendanceForm.status) errors.status = "Status is required.";
+
+    const duplicate = attendanceRows.find(
+      (row) =>
+        row.date === attendanceForm.date &&
+        row.batch.toLowerCase() === attendanceForm.batch.trim().toLowerCase() &&
+        row.student.toLowerCase() === attendanceForm.student.trim().toLowerCase()
+    );
+    if (duplicate) errors.student = "Attendance already marked for this student and date.";
+
+    setAttendanceErrors(errors);
+    if (Object.keys(errors).length) return;
+
+    setAttendanceRows((prev) => [
+      { id: `ATT-${1000 + prev.length + 1}`, date: attendanceForm.date, batch: attendanceForm.batch.trim(), student: attendanceForm.student.trim(), status: attendanceForm.status },
+      ...prev,
+    ]);
+    setAttendanceModal(false);
+  };
+
+  const openExamModuleDialog = () => {
+    setExamModuleErrors({});
+    setExamModuleForm({ ...defaultExamModuleForm, examDate: format(new Date(), "yyyy-MM-dd") });
+    setExamModuleModal(true);
+  };
+
+  const calculateGrade = (total) => {
+    if (total >= 90) return "A+";
+    if (total >= 80) return "A";
+    if (total >= 70) return "B+";
+    if (total >= 60) return "B";
+    if (total >= 50) return "C";
+    if (total >= 35) return "D";
+    return "F";
+  };
+
+  const saveExamModuleRecord = () => {
+    const errors = {};
+    const theory = Number(examModuleForm.theoryMarks);
+    const practical = Number(examModuleForm.practicalMarks);
+    if (!examModuleForm.examName.trim()) errors.examName = "Exam name is required.";
+    if (!examModuleForm.batch.trim()) errors.batch = "Batch is required.";
+    if (!examModuleForm.student.trim()) errors.student = "Student is required.";
+    if (Number.isNaN(theory) || theory < 0 || theory > 50) errors.theoryMarks = "Theory marks must be between 0 and 50.";
+    if (Number.isNaN(practical) || practical < 0 || practical > 50) errors.practicalMarks = "Practical marks must be between 0 and 50.";
+    if (!examModuleForm.examDate) errors.examDate = "Exam date is required.";
+    setExamModuleErrors(errors);
+    if (Object.keys(errors).length) return;
+
+    const totalMarks = theory + practical;
+    setExamRows((prev) => [
+      {
+        id: `EX-${1000 + prev.length + 1}`,
+        examName: examModuleForm.examName.trim(),
+        batch: examModuleForm.batch.trim(),
+        student: examModuleForm.student.trim(),
+        theoryMarks: theory,
+        practicalMarks: practical,
+        totalMarks,
+        grade: calculateGrade(totalMarks),
+        examDate: examModuleForm.examDate,
+      },
+      ...prev,
+    ]);
+    setExamModuleModal(false);
+  };
+
+  const attendanceByBatch = Object.values(
+    attendanceRows.reduce((acc, row) => {
+      if (!acc[row.batch]) acc[row.batch] = { batch: row.batch, total: 0, present: 0 };
+      acc[row.batch].total += 1;
+      if (row.status === "Present") acc[row.batch].present += 1;
+      return acc;
+    }, {})
+  );
+
+  const attendanceByStudent = Object.values(
+    attendanceRows.reduce((acc, row) => {
+      const key = `${row.batch}__${row.student}`;
+      if (!acc[key]) acc[key] = { student: row.student, batch: row.batch, total: 0, present: 0 };
+      acc[key].total += 1;
+      if (row.status === "Present") acc[key].present += 1;
+      return acc;
+    }, {})
+  ).map((row) => ({ ...row, percentage: row.total ? Number(((row.present / row.total) * 100).toFixed(2)) : 0 }));
+
   const handlePhotoChange = (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -417,6 +526,8 @@ const TCMIOverviewPanel = ({ content }) => {
       {isCourses && <div className="mt-5"><div className="mb-3 flex items-center justify-between"><p className="font-body text-[11px] uppercase tracking-[0.16em] text-[var(--tcmi-muted)]">Course System</p><button type="button" onClick={() => setOpenCourseModal(true)} className="inline-flex items-center gap-1 rounded-lg border border-black bg-black px-3 py-2 font-body text-xs text-white hover:bg-gray-800"><FiPlus size={14} /> Add Course</button></div><div className="mb-3 flex flex-wrap gap-2">{["Certification (Level 1–4)", "Diploma programs", "Duration & fee setup", "Student assignment"].map((tag) => (<span key={tag} className="rounded-full border border-[var(--tcmi-border)] px-3 py-1 font-body text-xs">{tag}</span>))}</div><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{courseCards.map((course) => (<article key={course.id} className="rounded-xl border border-[var(--tcmi-border)] bg-white p-4"><p className="font-heading text-lg">{course.title}</p><p className="mt-2 font-body text-xs text-[var(--tcmi-muted)]">{course.type}</p><p className="mt-1 font-body text-sm">Duration: {course.duration}</p><p className="font-body text-sm">Fee: {course.fee}</p><p className="font-body text-xs text-[var(--tcmi-muted)]">{course.assignment}</p><div className="mt-3 flex gap-2"><button className="rounded border border-[var(--tcmi-border)] px-2 py-1 text-xs hover:border-black">Edit</button><button className="rounded border border-[var(--tcmi-border)] px-2 py-1 text-xs hover:border-black">Assign</button></div></article>))}</div></div>}
 
       {isBatches && <div className="mt-5 space-y-4"><div className="flex flex-wrap items-center justify-between gap-2"><p className="font-body text-[11px] uppercase tracking-[0.16em] text-[var(--tcmi-muted)]">Batch Management</p><button type="button" onClick={openBatchDialog} className="inline-flex items-center gap-1 rounded-lg border border-black bg-black px-3 py-2 font-body text-xs text-white hover:bg-gray-800"><FiPlus size={14} /> Add Batch</button></div><div className="overflow-x-auto rounded-xl border border-[var(--tcmi-border)]"><table className="min-w-full border-collapse"><thead className="bg-[var(--tcmi-soft)]"><tr className="text-[11px] uppercase tracking-[0.12em] text-[var(--tcmi-muted)]"><th className="px-3 py-2 text-left">Batch</th><th className="px-3 py-2 text-left">Course</th><th className="px-3 py-2 text-left">Trainer</th><th className="px-3 py-2 text-left">Students</th><th className="px-3 py-2 text-left">Schedule Timing</th><th className="px-3 py-2 text-left">Mode</th></tr></thead><tbody>{batchRows.map((batch) => (<tr key={batch.id} className="border-t border-[var(--tcmi-border)] text-sm"><td className="px-3 py-2">{batch.batchName}</td><td className="px-3 py-2">{batch.course}</td><td className="px-3 py-2">{batch.trainer}</td><td className="px-3 py-2">{batch.students}</td><td className="px-3 py-2">{batch.schedule}</td><td className="px-3 py-2">{batch.mode}</td></tr>))}</tbody></table></div></div>}
+      {isAttendance && <div className="mt-5 space-y-4"><div className="flex flex-wrap items-center justify-between gap-2"><p className="font-body text-[11px] uppercase tracking-[0.16em] text-[var(--tcmi-muted)]">Attendance System</p><button type="button" onClick={openAttendanceDialog} className="rounded-lg border border-black bg-black px-3 py-2 text-xs text-white">+ Daily Marking</button></div><div className="overflow-x-auto rounded-xl border border-[var(--tcmi-border)]"><table className="min-w-full border-collapse"><thead className="bg-[var(--tcmi-soft)]"><tr className="text-[11px] uppercase tracking-[0.12em] text-[var(--tcmi-muted)]"><th className="px-3 py-2 text-left">Date</th><th className="px-3 py-2 text-left">Batch</th><th className="px-3 py-2 text-left">Student</th><th className="px-3 py-2 text-left">Status</th></tr></thead><tbody>{attendanceRows.map((row) => (<tr key={row.id} className="border-t border-[var(--tcmi-border)] text-sm"><td className="px-3 py-2">{format(new Date(row.date), "dd/MM/yy")}</td><td className="px-3 py-2">{row.batch}</td><td className="px-3 py-2">{row.student}</td><td className="px-3 py-2">{row.status}</td></tr>))}</tbody></table></div><div className="grid gap-3 xl:grid-cols-2"><div className="rounded-xl border border-[var(--tcmi-border)] p-4"><p className="text-xs uppercase tracking-[0.12em] text-[var(--tcmi-muted)]">Batch-wise Tracking</p><div className="mt-3 space-y-2">{attendanceByBatch.map((row) => (<div key={row.batch} className="flex items-center justify-between text-sm"><span>{row.batch}</span><span>{row.present}/{row.total} Present ({row.total ? ((row.present / row.total) * 100).toFixed(1) : "0"}%)</span></div>))}</div></div><div className="rounded-xl border border-[var(--tcmi-border)] p-4"><p className="text-xs uppercase tracking-[0.12em] text-[var(--tcmi-muted)]">Auto Percentage Calculation</p><div className="mt-3 overflow-x-auto"><table className="min-w-full text-sm"><thead><tr className="text-[11px] uppercase tracking-[0.12em] text-[var(--tcmi-muted)]"><th className="text-left">Student</th><th className="text-left">Batch</th><th className="text-left">Attendance %</th></tr></thead><tbody>{attendanceByStudent.map((row) => (<tr key={`${row.batch}-${row.student}`} className="border-t border-[var(--tcmi-border)]"><td className="py-2">{row.student}</td><td className="py-2">{row.batch}</td><td className="py-2">{row.percentage}%</td></tr>))}</tbody></table></div></div></div></div>}
+      {isExams && <div className="mt-5 space-y-4"><div className="flex flex-wrap items-center justify-between gap-2"><p className="font-body text-[11px] uppercase tracking-[0.16em] text-[var(--tcmi-muted)]">Exam System</p><button type="button" onClick={openExamModuleDialog} className="rounded-lg border border-black bg-black px-3 py-2 text-xs text-white">+ Create Exam</button></div><div className="overflow-x-auto rounded-xl border border-[var(--tcmi-border)]"><table className="min-w-full border-collapse"><thead className="bg-[var(--tcmi-soft)]"><tr className="text-[11px] uppercase tracking-[0.12em] text-[var(--tcmi-muted)]"><th className="px-3 py-2 text-left">Exam</th><th className="px-3 py-2 text-left">Batch</th><th className="px-3 py-2 text-left">Student</th><th className="px-3 py-2 text-left">Theory</th><th className="px-3 py-2 text-left">Practical</th><th className="px-3 py-2 text-left">Total</th><th className="px-3 py-2 text-left">Grade</th></tr></thead><tbody>{examRows.map((row) => (<tr key={row.id} className="border-t border-[var(--tcmi-border)] text-sm"><td className="px-3 py-2">{row.examName}</td><td className="px-3 py-2">{row.batch}</td><td className="px-3 py-2">{row.student}</td><td className="px-3 py-2">{row.theoryMarks}/50</td><td className="px-3 py-2">{row.practicalMarks}/50</td><td className="px-3 py-2">{row.totalMarks}/100</td><td className="px-3 py-2">{row.grade}</td></tr>))}</tbody></table></div></div>}
 
       {leadModal.open && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"><div className="w-full max-w-xl rounded-2xl border border-[var(--tcmi-border)] bg-white p-5"><div className="mb-4 flex items-center justify-between border-b border-[var(--tcmi-border)] pb-3"><h4 className="font-heading text-xl">{leadModal.mode === "add" ? "Add Lead" : leadModal.mode === "view" ? "View Lead" : "Edit Lead"}</h4><button onClick={() => setLeadModal({ open: false, mode: "add", leadId: null })} className="rounded border px-2 py-1 text-xs">Close</button></div><div className="grid gap-3 sm:grid-cols-2">{["name", "source", "leadPercentage", "followUp"].map((field) => (<label key={field} className="font-body text-xs text-[var(--tcmi-muted)]">{field === "leadPercentage" ? "Lead Percentage" : field.charAt(0).toUpperCase() + field.slice(1)}<input type={field === "followUp" ? "date" : field === "leadPercentage" ? "number" : "text"} value={leadForm[field]} onChange={(e) => setLeadForm((prev) => ({ ...prev, [field]: e.target.value }))} readOnly={leadModal.mode === "view"} className="mt-1 w-full rounded border border-[var(--tcmi-border)] px-2 py-2 text-sm" />{leadErrors[field] && <p className="mt-1 text-xs text-red-600">{leadErrors[field]}</p>}</label>))}<label className="sm:col-span-2 font-body text-xs text-[var(--tcmi-muted)]">Notes<textarea value={leadForm.notes} onChange={(e) => setLeadForm((prev) => ({ ...prev, notes: e.target.value }))} readOnly={leadModal.mode === "view"} className="mt-1 w-full rounded border border-[var(--tcmi-border)] px-2 py-2 text-sm" rows={3} />{leadErrors.notes && <p className="mt-1 text-xs text-red-600">{leadErrors.notes}</p>}</label></div>{leadModal.mode !== "view" && <div className="mt-4 flex justify-end gap-2"><button onClick={() => setLeadModal({ open: false, mode: "add", leadId: null })} className="rounded border border-[var(--tcmi-border)] px-3 py-2 text-xs">Cancel</button><button onClick={saveLead} className="rounded border border-black bg-black px-3 py-2 text-xs text-white">Save</button></div>}{leadModal.mode === "view" && activeLead?.converted && <p className="mt-3 font-body text-xs text-green-700">This lead is already converted to student.</p>}</div></div>}
 
@@ -431,6 +542,8 @@ const TCMIOverviewPanel = ({ content }) => {
       {openCourseModal && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"><div className="w-full max-w-lg rounded-2xl border border-[var(--tcmi-border)] bg-white p-5"><div className="mb-4 flex items-center justify-between"><h4 className="font-heading text-xl">Add Course</h4><button onClick={() => setOpenCourseModal(false)} className="rounded border px-2 py-1 text-xs">Close</button></div><p className="mb-3 font-body text-sm text-[var(--tcmi-muted)]">Click save to add a sample course card. This operation is prepared for full card CRUD in future.</p><button onClick={() => { const next = courseCards.length + 1; setCourseCards((prev) => [...prev, { id: `CRS-${400 + next}`, title: `New Course ${next}`, type: "Certification", duration: "3 months", fee: "₹22,000", assignment: "0 students assigned" }]); setOpenCourseModal(false); }} className="rounded-lg border border-black bg-black px-3 py-2 text-xs text-white">Save Sample Course</button></div></div>}
 
       {batchModal && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"><div className="w-full max-w-xl rounded-2xl border border-[var(--tcmi-border)] bg-white p-5"><div className="mb-4 flex items-center justify-between border-b pb-3"><h4 className="font-heading text-xl">Add Batch</h4><button onClick={() => setBatchModal(false)} className="rounded border px-2 py-1 text-xs">Close</button></div><div className="grid gap-3 sm:grid-cols-2"><label className="text-xs">Batch Name<input value={batchForm.batchName} onChange={(e) => setBatchForm((prev) => ({ ...prev, batchName: e.target.value }))} className="mt-1 w-full rounded border px-2 py-2 text-sm" />{batchErrors.batchName && <p className="text-xs text-red-600">{batchErrors.batchName}</p>}</label><label className="text-xs">Course<input value={batchForm.course} onChange={(e) => setBatchForm((prev) => ({ ...prev, course: e.target.value }))} className="mt-1 w-full rounded border px-2 py-2 text-sm" />{batchErrors.course && <p className="text-xs text-red-600">{batchErrors.course}</p>}</label><label className="text-xs">Trainer<input value={batchForm.trainer} onChange={(e) => setBatchForm((prev) => ({ ...prev, trainer: e.target.value }))} className="mt-1 w-full rounded border px-2 py-2 text-sm" />{batchErrors.trainer && <p className="text-xs text-red-600">{batchErrors.trainer}</p>}</label><label className="text-xs">Assigned Students<input type="number" min="0" value={batchForm.students} onChange={(e) => setBatchForm((prev) => ({ ...prev, students: e.target.value }))} className="mt-1 w-full rounded border px-2 py-2 text-sm" />{batchErrors.students && <p className="text-xs text-red-600">{batchErrors.students}</p>}</label><label className="text-xs sm:col-span-2">Schedule Timing<input value={batchForm.schedule} onChange={(e) => setBatchForm((prev) => ({ ...prev, schedule: e.target.value }))} placeholder="Mon, Wed, Fri · 6:30 PM - 8:00 PM" className="mt-1 w-full rounded border px-2 py-2 text-sm" />{batchErrors.schedule && <p className="text-xs text-red-600">{batchErrors.schedule}</p>}</label><label className="text-xs sm:col-span-2">Mode<select value={batchForm.mode} onChange={(e) => setBatchForm((prev) => ({ ...prev, mode: e.target.value }))} className="mt-1 w-full rounded border px-2 py-2 text-sm"><option>Offline</option><option>Online</option><option>Hybrid</option></select></label></div><div className="mt-4 flex justify-end gap-2"><button onClick={() => setBatchModal(false)} className="rounded border px-3 py-2 text-xs">Cancel</button><button onClick={saveBatch} className="rounded border border-black bg-black px-3 py-2 text-xs text-white">Save Batch</button></div></div></div>}
+      {attendanceModal && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"><div className="w-full max-w-lg rounded-2xl border border-[var(--tcmi-border)] bg-white p-5"><div className="mb-4 flex items-center justify-between border-b pb-3"><h4 className="font-heading text-xl">Daily Attendance Marking</h4><button onClick={() => setAttendanceModal(false)} className="rounded border px-2 py-1 text-xs">Close</button></div><div className="grid gap-3">{["date", "batch", "student"].map((field) => (<label key={field} className="text-xs">{field.charAt(0).toUpperCase() + field.slice(1)}<input type={field === "date" ? "date" : "text"} value={attendanceForm[field]} onChange={(e) => setAttendanceForm((prev) => ({ ...prev, [field]: e.target.value }))} className="mt-1 w-full rounded border px-2 py-2 text-sm" />{attendanceErrors[field] && <p className="text-xs text-red-600">{attendanceErrors[field]}</p>}</label>))}<label className="text-xs">Status<select value={attendanceForm.status} onChange={(e) => setAttendanceForm((prev) => ({ ...prev, status: e.target.value }))} className="mt-1 w-full rounded border px-2 py-2 text-sm"><option>Present</option><option>Absent</option></select>{attendanceErrors.status && <p className="text-xs text-red-600">{attendanceErrors.status}</p>}</label></div><div className="mt-4 flex justify-end gap-2"><button onClick={() => setAttendanceModal(false)} className="rounded border px-3 py-2 text-xs">Cancel</button><button onClick={saveAttendance} className="rounded border border-black bg-black px-3 py-2 text-xs text-white">Save Attendance</button></div></div></div>}
+      {examModuleModal && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"><div className="w-full max-w-xl rounded-2xl border border-[var(--tcmi-border)] bg-white p-5"><div className="mb-4 flex items-center justify-between border-b pb-3"><h4 className="font-heading text-xl">Create Exam Record</h4><button onClick={() => setExamModuleModal(false)} className="rounded border px-2 py-1 text-xs">Close</button></div><div className="grid gap-3 sm:grid-cols-2"><label className="text-xs sm:col-span-2">Exam Name<input value={examModuleForm.examName} onChange={(e) => setExamModuleForm((prev) => ({ ...prev, examName: e.target.value }))} className="mt-1 w-full rounded border px-2 py-2 text-sm" />{examModuleErrors.examName && <p className="text-xs text-red-600">{examModuleErrors.examName}</p>}</label><label className="text-xs">Batch<input value={examModuleForm.batch} onChange={(e) => setExamModuleForm((prev) => ({ ...prev, batch: e.target.value }))} className="mt-1 w-full rounded border px-2 py-2 text-sm" />{examModuleErrors.batch && <p className="text-xs text-red-600">{examModuleErrors.batch}</p>}</label><label className="text-xs">Student<input value={examModuleForm.student} onChange={(e) => setExamModuleForm((prev) => ({ ...prev, student: e.target.value }))} className="mt-1 w-full rounded border px-2 py-2 text-sm" />{examModuleErrors.student && <p className="text-xs text-red-600">{examModuleErrors.student}</p>}</label><label className="text-xs">Theory Marks (0-50)<input type="number" min="0" max="50" value={examModuleForm.theoryMarks} onChange={(e) => setExamModuleForm((prev) => ({ ...prev, theoryMarks: e.target.value }))} className="mt-1 w-full rounded border px-2 py-2 text-sm" />{examModuleErrors.theoryMarks && <p className="text-xs text-red-600">{examModuleErrors.theoryMarks}</p>}</label><label className="text-xs">Practical Marks (0-50)<input type="number" min="0" max="50" value={examModuleForm.practicalMarks} onChange={(e) => setExamModuleForm((prev) => ({ ...prev, practicalMarks: e.target.value }))} className="mt-1 w-full rounded border px-2 py-2 text-sm" />{examModuleErrors.practicalMarks && <p className="text-xs text-red-600">{examModuleErrors.practicalMarks}</p>}</label><label className="text-xs sm:col-span-2">Exam Date<input type="date" value={examModuleForm.examDate} onChange={(e) => setExamModuleForm((prev) => ({ ...prev, examDate: e.target.value }))} className="mt-1 w-full rounded border px-2 py-2 text-sm" />{examModuleErrors.examDate && <p className="text-xs text-red-600">{examModuleErrors.examDate}</p>}</label></div><div className="mt-4 flex justify-end gap-2"><button onClick={() => setExamModuleModal(false)} className="rounded border px-3 py-2 text-xs">Cancel</button><button onClick={saveExamModuleRecord} className="rounded border border-black bg-black px-3 py-2 text-xs text-white">Save Exam</button></div></div></div>}
     </section>
   );
 };

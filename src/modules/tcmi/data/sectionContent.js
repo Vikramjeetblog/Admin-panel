@@ -133,6 +133,18 @@ export const tcmiBatchRows = [
   },
 ];
 
+export const tcmiAttendanceRows = [
+  { id: "ATT-1001", date: "2026-04-14", batch: "PIA-L2-EVE", student: "Nisha Mehta", status: "Present" },
+  { id: "ATT-1002", date: "2026-04-14", batch: "PIA-L2-EVE", student: "Ritvik Suri", status: "Absent" },
+  { id: "ATT-1003", date: "2026-04-14", batch: "VOC-L4-WKD", student: "Ishita Sen", status: "Present" },
+  { id: "ATT-1004", date: "2026-04-13", batch: "PIA-L2-EVE", student: "Nisha Mehta", status: "Present" },
+];
+
+export const tcmiExamRows = [
+  { id: "EX-1001", examName: "Midterm Practical", batch: "PIA-L2-EVE", student: "Nisha Mehta", theoryMarks: 43, practicalMarks: 45, totalMarks: 88, grade: "A", examDate: "2026-04-18" },
+  { id: "EX-1002", examName: "Midterm Practical", batch: "PIA-L2-EVE", student: "Ritvik Suri", theoryMarks: 35, practicalMarks: 37, totalMarks: 72, grade: "B+", examDate: "2026-04-18" },
+];
+
 
 export const tcmiFinanceRows = [
   {
@@ -199,10 +211,23 @@ export const tcmiSectionContent = {
   attendance: {
     title: "Attendance",
     description: "Monitor attendance performance with daily entries and low-attendance triggers.",
+    featureTitle: "Attendance System",
+    featureCards: [
+      { title: "Daily attendance marking", description: "Mark students daily with strict duplicate prevention and field validation." },
+      { title: "Batch-wise tracking", description: "Track present/absent ratio by each active batch." },
+      { title: "Auto percentage calculation", description: "Auto-calculate attendance percentages per student." },
+    ],
   },
   exams: {
     title: "Exams",
     description: "Plan assessments, publish scorecards, and maintain grading workflows by batch.",
+    featureTitle: "Exam System",
+    featureCards: [
+      { title: "Create exams", description: "Create exam entries with required date and exam name." },
+      { title: "Assign batches", description: "Attach each exam record to an assigned batch and student." },
+      { title: "Theory & practical marks", description: "Capture theory and practical marks with numeric range checks." },
+      { title: "Auto grading system", description: "Automatically generate grades from total marks." },
+    ],
   },
   certificates: {
     title: "Certificates",
