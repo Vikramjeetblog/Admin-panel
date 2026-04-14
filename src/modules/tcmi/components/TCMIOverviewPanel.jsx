@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import { FiEye } from "react-icons/fi";
 import { tcmiLeadRows, tcmiStudentRows } from "../data/sectionContent";
 
 const fallbackFeaturesByTitle = {
@@ -9,11 +10,11 @@ const fallbackFeaturesByTitle = {
   Leads: {
     featureTitle: "Lead Management System",
     featureCards: [
-      { title: "Add / Edit Leads" },
-      { title: "Lead Status Tracking" },
-      { title: "Follow-up Reminders" },
-      { title: "Notes & Call Logs" },
-      { title: "Convert Lead to Student" },
+      { title: "Add / Edit Leads", description: "Create and update lead records with counselor assignment." },
+      { title: "Lead Status Tracking", description: "Track New, Contacted, Qualified, and Closed stages." },
+      { title: "Follow-up Reminders", description: "View due and overdue follow-up reminders by counselor." },
+      { title: "Notes & Call Logs", description: "Maintain all call notes and communication history in one timeline." },
+      { title: "Convert Lead to Student", description: "Move qualified leads directly to student enrollment flow." },
     ],
   },
 };
@@ -27,6 +28,7 @@ const statusClass = {
 const TCMIOverviewPanel = ({ content }) => {
   const [openLeadModal, setOpenLeadModal] = useState(false);
   const [selectedStudentId, setSelectedStudentId] = useState(tcmiStudentRows[0].id);
+  const [openStudentModal, setOpenStudentModal] = useState(false);
 
   if (!content) {
     return null;
@@ -59,6 +61,7 @@ const TCMIOverviewPanel = ({ content }) => {
               <article key={feature.title} className="rounded-xl border border-[var(--tcmi-border)] bg-[var(--tcmi-soft)] p-4">
                 <p className="font-heading text-lg text-[var(--tcmi-text)]">{feature.title}</p>
                 {feature.value && <p className="mt-2 font-heading text-2xl text-[var(--tcmi-text)]">{feature.value}</p>}
+                {feature.description && <p className="mt-2 font-body text-xs text-[var(--tcmi-muted)]">{feature.description}</p>}
               </article>
             ))}
           </div>
@@ -114,49 +117,76 @@ const TCMIOverviewPanel = ({ content }) => {
       )}
 
       {isStudents && selectedStudent && (
-        <div className="mt-5 grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-          <div className="rounded-xl border border-[var(--tcmi-border)]">
-            <div className="border-b border-[var(--tcmi-border)] bg-[var(--tcmi-soft)] px-4 py-3 font-body text-[11px] uppercase tracking-[0.12em] text-[var(--tcmi-muted)]">
-              Detailed Student Table
-            </div>
-            <div className="overflow-x-auto">
-              <table className="min-w-full border-collapse">
-                <thead>
-                  <tr className="font-body text-[11px] uppercase tracking-[0.12em] text-[var(--tcmi-muted)]">
-                    <th className="px-3 py-2 text-left">Student</th>
-                    <th className="px-3 py-2 text-left">Course</th>
-                    <th className="px-3 py-2 text-left">Batch</th>
-                    <th className="px-3 py-2 text-left">Fees</th>
-                    <th className="px-3 py-2 text-left">Attendance</th>
-                    <th className="px-3 py-2 text-left">Exam</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {studentsData.map((student) => (
-                    <tr
-                      key={student.id}
-                      onClick={() => setSelectedStudentId(student.id)}
-                      className={`cursor-pointer border-t border-[var(--tcmi-border)] font-body text-sm ${
-                        selectedStudentId === student.id ? "bg-[var(--tcmi-soft)]" : "bg-white"
-                      }`}
-                    >
-                      <td className="px-3 py-2">{student.name}</td>
-                      <td className="px-3 py-2">{student.course}</td>
-                      <td className="px-3 py-2">{student.batch}</td>
-                      <td className="px-3 py-2">{student.fees}</td>
-                      <td className="px-3 py-2">{student.attendance}</td>
-                      <td className="px-3 py-2">{student.exam}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+        <div className="mt-5 rounded-xl border border-[var(--tcmi-border)]">
+          <div className="border-b border-[var(--tcmi-border)] bg-[var(--tcmi-soft)] px-4 py-3 font-body text-[11px] uppercase tracking-[0.12em] text-[var(--tcmi-muted)]">
+            Detailed Student Table
           </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full border-collapse">
+              <thead>
+                <tr className="font-body text-[11px] uppercase tracking-[0.12em] text-[var(--tcmi-muted)]">
+                  <th className="px-3 py-2 text-left">Student</th>
+                  <th className="px-3 py-2 text-left">Course</th>
+                  <th className="px-3 py-2 text-left">Batch</th>
+                  <th className="px-3 py-2 text-left">Fees</th>
+                  <th className="px-3 py-2 text-left">Attendance</th>
+                  <th className="px-3 py-2 text-left">Exam</th>
+                  <th className="px-3 py-2 text-left">Profile</th>
+                </tr>
+              </thead>
+              <tbody>
+                {studentsData.map((student) => (
+                  <tr key={student.id} className="border-t border-[var(--tcmi-border)] font-body text-sm">
+                    <td className="px-3 py-2">{student.name}</td>
+                    <td className="px-3 py-2">{student.course}</td>
+                    <td className="px-3 py-2">{student.batch}</td>
+                    <td className="px-3 py-2">{student.fees}</td>
+                    <td className="px-3 py-2">{student.attendance}</td>
+                    <td className="px-3 py-2">{student.exam}</td>
+                    <td className="px-3 py-2">
+                      <button
+                        onClick={() => {
+                          setSelectedStudentId(student.id);
+                          setOpenStudentModal(true);
+                        }}
+                        className="rounded border border-[var(--tcmi-border)] p-2 hover:border-black"
+                        aria-label="Open profile"
+                      >
+                        <FiEye size={14} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
-          <aside className="rounded-xl border border-[var(--tcmi-border)] bg-white p-4">
-            <p className="font-body text-[11px] uppercase tracking-[0.12em] text-[var(--tcmi-muted)]">Student Profile</p>
-            <h4 className="mt-2 font-heading text-2xl">{selectedStudent.name}</h4>
-            <div className="mt-4 space-y-2 font-body text-sm">
+      {openLeadModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-lg rounded-2xl border border-[var(--tcmi-border)] bg-white p-5">
+            <div className="mb-4 flex items-center justify-between">
+              <h4 className="font-heading text-xl">Add Lead</h4>
+              <button onClick={() => setOpenLeadModal(false)} className="rounded border px-2 py-1 text-xs">Close</button>
+            </div>
+            <p className="font-body text-sm text-[var(--tcmi-muted)]">Lead form placeholder added here. Next step: connect form fields to API/create flow.</p>
+          </div>
+        </div>
+      )}
+
+      {openStudentModal && selectedStudent && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-2xl rounded-2xl border border-[var(--tcmi-border)] bg-white p-5">
+            <div className="mb-4 flex items-center justify-between border-b border-[var(--tcmi-border)] pb-3">
+              <div>
+                <p className="font-body text-[11px] uppercase tracking-[0.12em] text-[var(--tcmi-muted)]">Student Profile</p>
+                <h4 className="font-heading text-2xl">{selectedStudent.name}</h4>
+              </div>
+              <button onClick={() => setOpenStudentModal(false)} className="rounded border px-2 py-1 text-xs">Close</button>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2 font-body text-sm">
               <p><span className="text-[var(--tcmi-muted)]">ID:</span> {selectedStudent.id}</p>
               <p><span className="text-[var(--tcmi-muted)]">Email:</span> {selectedStudent.email}</p>
               <p><span className="text-[var(--tcmi-muted)]">Phone:</span> {selectedStudent.phone}</p>
@@ -177,18 +207,6 @@ const TCMIOverviewPanel = ({ content }) => {
               </div>
               <p className="mt-2 font-body text-xs text-[var(--tcmi-muted)]">ID: {selectedStudent.idDoc} · Form: {selectedStudent.formDoc}</p>
             </div>
-          </aside>
-        </div>
-      )}
-
-      {openLeadModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-lg rounded-2xl border border-[var(--tcmi-border)] bg-white p-5">
-            <div className="mb-4 flex items-center justify-between">
-              <h4 className="font-heading text-xl">Add Lead</h4>
-              <button onClick={() => setOpenLeadModal(false)} className="rounded border px-2 py-1 text-xs">Close</button>
-            </div>
-            <p className="font-body text-sm text-[var(--tcmi-muted)]">Lead form placeholder added here. Next step: connect form fields to API/create flow.</p>
           </div>
         </div>
       )}
