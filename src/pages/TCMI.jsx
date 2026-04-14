@@ -179,13 +179,13 @@ const courseData = [
   { program: "Certification - Level 4", duration: "4 months", fee: "₹34,000", students: 61 },
   { program: "Diploma in Music Production", duration: "12 months", fee: "₹1,20,000", students: 38 },
 ];
-
-  return (
-    <div className="space-y-6 max-w-6xl mx-auto">
 const batchData = [
   { code: "PIA-L2-EVE", trainer: "Shreya Dutta", timing: "Mon-Wed-Fri | 6:00 PM", students: 22 },
   { code: "GTR-L3-MOR", trainer: "Karan Singh", timing: "Tue-Thu | 9:00 AM", students: 16 },
 ];
+  return (
+    <div className="space-y-6 max-w-6xl mx-auto">
+
 
       {/* HEADER */}
       <div>
