@@ -8,9 +8,33 @@ export const tcmiSummaryCards = [
 ];
 
 export const tcmiLeadRows = [
-  { name: "Aarav Malhotra", source: "Instagram", status: "Hot", followUp: "16 Apr 2026", notes: "Interested in Diploma - Piano" },
-  { name: "Sara Khan", source: "Referral", status: "Warm", followUp: "17 Apr 2026", notes: "Requested evening batch" },
-  { name: "Vihaan Roy", source: "Website", status: "Cold", followUp: "19 Apr 2026", notes: "Needs financing options" },
+  {
+    id: "LD-1001",
+    name: "Aarav Malhotra",
+    source: "Instagram",
+    leadPercentage: 82,
+    followUp: "2026-04-16",
+    notes: "Interested in Diploma - Piano",
+    converted: false,
+  },
+  {
+    id: "LD-1002",
+    name: "Sara Khan",
+    source: "Referral",
+    leadPercentage: 61,
+    followUp: "2026-04-17",
+    notes: "Requested evening batch",
+    converted: false,
+  },
+  {
+    id: "LD-1003",
+    name: "Vihaan Roy",
+    source: "Website",
+    leadPercentage: 34,
+    followUp: "2026-04-19",
+    notes: "Needs financing options",
+    converted: false,
+  },
 ];
 
 export const tcmiStudentRows = [
