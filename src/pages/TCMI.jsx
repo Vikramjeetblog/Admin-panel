@@ -191,6 +191,25 @@ const batchData = [
   { student: "Ritvik Suri", plan: "Installment", paid: "₹45,000", due: "₹15,000", receipt: "REC-1024" },
   { student: "Nisha Mehta", plan: "Full Payment", paid: "₹34,000", due: "₹0", receipt: "REC-1030" },
 ];
+  const documentData = [
+  { student: "Ishita Sen", file: "ID Proof", type: "PDF", updated: "10 Apr 2026" },
+  { student: "Nisha Mehta", file: "Registration Form", type: "PDF", updated: "08 Apr 2026" },
+  { student: "Ritvik Suri", file: "Course Certificate", type: "PDF", updated: "05 Apr 2026" },
+];
+  const roleData = [
+  { role: "Admin", access: "Full access" },
+  { role: "Counselor", access: "Leads & Students" },
+  { role: "Faculty", access: "Attendance & Exams" },
+  { role: "Accountant", access: "Finance" },
+];
+const statusClass = {
+  Hot: "bg-black text-white border-black",
+  Warm: "bg-gray-100 text-black border-gray-300",
+  Cold: "bg-white text-gray-500 border-gray-300",
+  Paid: "bg-black text-white border-black",
+  Pending: "bg-white text-black border-black",
+  Installment: "bg-gray-100 text-black border-gray-300",
+};
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
 
@@ -212,19 +231,10 @@ const batchData = [
           onChange={(e) => setSearch(e.target.value)}
           className="border px-3 py-2 rounded-md w-full max-w-sm"
         />
-const documentData = [
-  { student: "Ishita Sen", file: "ID Proof", type: "PDF", updated: "10 Apr 2026" },
-  { student: "Nisha Mehta", file: "Registration Form", type: "PDF", updated: "08 Apr 2026" },
-  { student: "Ritvik Suri", file: "Course Certificate", type: "PDF", updated: "05 Apr 2026" },
-];
+
 
         <div className="flex gap-2">
-const roleData = [
-  { role: "Admin", access: "Full access" },
-  { role: "Counselor", access: "Leads & Students" },
-  { role: "Faculty", access: "Attendance & Exams" },
-  { role: "Accountant", access: "Finance" },
-];
+
 
           <select
             value={filter}
@@ -235,14 +245,7 @@ const roleData = [
             <option>Active</option>
             <option>Completed</option>
           </select>
-const statusClass = {
-  Hot: "bg-black text-white border-black",
-  Warm: "bg-gray-100 text-black border-gray-300",
-  Cold: "bg-white text-gray-500 border-gray-300",
-  Paid: "bg-black text-white border-black",
-  Pending: "bg-white text-black border-black",
-  Installment: "bg-gray-100 text-black border-gray-300",
-};
+
 
           <button
             onClick={() => {
