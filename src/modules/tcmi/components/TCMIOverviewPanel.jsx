@@ -57,6 +57,9 @@ const TCMIOverviewPanel = ({ content }) => {
   const [financeModal, setFinanceModal] = useState(false);
   const [financeForm, setFinanceForm] = useState(defaultFinanceForm);
   const [financeErrors, setFinanceErrors] = useState({});
+  const [financeEditModal, setFinanceEditModal] = useState({ open: false, id: null });
+  const [financeEditForm, setFinanceEditForm] = useState(defaultFinanceForm);
+  const [financeEditErrors, setFinanceEditErrors] = useState({});
 
   const [courseCards, setCourseCards] = useState(tcmiCourseCatalog);
 
@@ -253,6 +256,60 @@ const TCMIOverviewPanel = ({ content }) => {
     setFinanceModal(false);
   };
 
+
+  const openFinanceEditDialog = (row) => {
+    setFinanceEditErrors({});
+    setFinanceEditForm({
+      student: row.student,
+      totalFee: String(row.totalFee),
+      paid: String(row.paid),
+      discount: String(row.discount),
+      installment: row.installment,
+      date: row.date,
+    });
+    setFinanceEditModal({ open: true, id: row.id });
+  };
+
+  const saveFinanceUpdate = () => {
+    const errors = {};
+    const totalFee = Number(financeEditForm.totalFee);
+    const paid = Number(financeEditForm.paid);
+    const discount = Number(financeEditForm.discount || 0);
+
+    if (!financeEditForm.student.trim()) errors.student = "Student name is required.";
+    if (Number.isNaN(totalFee) || totalFee <= 0) errors.totalFee = "Total fee must be greater than 0.";
+    if (Number.isNaN(paid) || paid < 0) errors.paid = "Paid amount must be 0 or more.";
+    if (Number.isNaN(discount) || discount < 0) errors.discount = "Discount must be 0 or more.";
+    if (!financeEditForm.date) errors.date = "Date is required.";
+    if (!errors.totalFee && !errors.paid && !errors.discount && paid + discount > totalFee) {
+      errors.paid = "Paid + discount cannot exceed total fee.";
+    }
+
+    setFinanceEditErrors(errors);
+    if (Object.keys(errors).length) return;
+
+    const due = Math.max(totalFee - paid - discount, 0);
+
+    setFinanceRows((prev) =>
+      prev.map((row) =>
+        row.id === financeEditModal.id
+          ? {
+              ...row,
+              student: financeEditForm.student.trim(),
+              totalFee,
+              paid,
+              discount,
+              installment: financeEditForm.installment,
+              due,
+              date: financeEditForm.date,
+            }
+          : row
+      )
+    );
+
+    setFinanceEditModal({ open: false, id: null });
+  };
+
   const handlePhotoChange = (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -329,13 +386,13 @@ const TCMIOverviewPanel = ({ content }) => {
             <table className="min-w-full border-collapse">
               <thead className="bg-[var(--tcmi-soft)]">
                 <tr className="text-[11px] uppercase tracking-[0.12em] text-[var(--tcmi-muted)]">
-                  <th className="px-3 py-2 text-left">Student</th><th className="px-3 py-2 text-left">Total Fee</th><th className="px-3 py-2 text-left">Paid</th><th className="px-3 py-2 text-left">Discount</th><th className="px-3 py-2 text-left">Installment</th><th className="px-3 py-2 text-left">Due</th><th className="px-3 py-2 text-left">Receipt</th><th className="px-3 py-2 text-left">Date</th>
+                  <th className="px-3 py-2 text-left">Student</th><th className="px-3 py-2 text-left">Total Fee</th><th className="px-3 py-2 text-left">Paid</th><th className="px-3 py-2 text-left">Discount</th><th className="px-3 py-2 text-left">Installment</th><th className="px-3 py-2 text-left">Due</th><th className="px-3 py-2 text-left">Receipt</th><th className="px-3 py-2 text-left">Date</th><th className="px-3 py-2 text-left">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {financeRows.map((row) => (
                   <tr key={row.id} className="border-t border-[var(--tcmi-border)] text-sm">
-                    <td className="px-3 py-2">{row.student}</td><td className="px-3 py-2">₹{row.totalFee.toLocaleString()}</td><td className="px-3 py-2">₹{row.paid.toLocaleString()}</td><td className="px-3 py-2">₹{row.discount.toLocaleString()}</td><td className="px-3 py-2">{row.installment}</td><td className="px-3 py-2">₹{row.due.toLocaleString()}</td><td className="px-3 py-2">{row.receipt}</td><td className="px-3 py-2">{format(new Date(row.date), "dd/MM/yy")}</td>
+                    <td className="px-3 py-2">{row.student}</td><td className="px-3 py-2">₹{row.totalFee.toLocaleString()}</td><td className="px-3 py-2">₹{row.paid.toLocaleString()}</td><td className="px-3 py-2">₹{row.discount.toLocaleString()}</td><td className="px-3 py-2">{row.installment}</td><td className="px-3 py-2">₹{row.due.toLocaleString()}</td><td className="px-3 py-2">{row.receipt}</td><td className="px-3 py-2">{format(new Date(row.date), "dd/MM/yy")}</td><td className="px-3 py-2"><button onClick={() => openFinanceEditDialog(row)} className="rounded border border-[var(--tcmi-border)] px-2 py-1 text-xs hover:border-black">Update Fee</button></td>
                   </tr>
                 ))}
               </tbody>
@@ -355,6 +412,8 @@ const TCMIOverviewPanel = ({ content }) => {
       {openStudentModal && selectedStudent && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"><div className="w-full max-w-2xl rounded-2xl border border-[var(--tcmi-border)] bg-white p-5"><div className="mb-4 flex items-center justify-between border-b pb-3"><div><p className="font-body text-[11px] uppercase tracking-[0.12em] text-[var(--tcmi-muted)]">Student Profile</p><h4 className="font-heading text-2xl">{selectedStudent.name}</h4></div><button onClick={() => setOpenStudentModal(false)} className="rounded border px-2 py-1 text-xs">Close</button></div><div className="grid gap-3 sm:grid-cols-2 font-body text-sm"><p><span className="text-[var(--tcmi-muted)]">ID:</span> {selectedStudent.id}</p><p><span className="text-[var(--tcmi-muted)]">Email:</span> {selectedStudent.email}</p><p><span className="text-[var(--tcmi-muted)]">Phone:</span> {selectedStudent.phone}</p><p><span className="text-[var(--tcmi-muted)]">Guardian:</span> {selectedStudent.guardian}</p><p><span className="text-[var(--tcmi-muted)]">Address:</span> {selectedStudent.address}</p><p><span className="text-[var(--tcmi-muted)]">Course:</span> {selectedStudent.course}</p><p><span className="text-[var(--tcmi-muted)]">Batch:</span> {selectedStudent.batch}</p><p><span className="text-[var(--tcmi-muted)]">Fees:</span> {selectedStudent.fees}</p><p><span className="text-[var(--tcmi-muted)]">Attendance:</span> {selectedStudent.attendance}</p><p><span className="text-[var(--tcmi-muted)]">Exam:</span> {selectedStudent.exam}</p></div><div className="mt-4 border-t pt-3"><p className="font-body text-[11px] uppercase tracking-[0.12em] text-[var(--tcmi-muted)]">Generate Documents</p><div className="mt-2 flex flex-wrap gap-2"><button onClick={() => generateDocument(selectedStudent.id, "marksheet")} className="rounded border px-2 py-1 text-xs">Generate Marksheet</button><button onClick={() => generateDocument(selectedStudent.id, "idMarksheet")} className="rounded border px-2 py-1 text-xs">Generate ID Marksheet</button></div><p className="mt-2 font-body text-xs text-[var(--tcmi-muted)]">{generatedDocs[selectedStudent.id]?.marksheet || "Marksheet not generated"} · {generatedDocs[selectedStudent.id]?.idMarksheet || "ID marksheet not generated"}</p></div></div></div>}
 
       {financeModal && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"><div className="w-full max-w-lg rounded-2xl border border-[var(--tcmi-border)] bg-white p-5"><div className="mb-4 flex items-center justify-between border-b pb-3"><h4 className="font-heading text-xl">Add Finance Entry</h4><button onClick={() => setFinanceModal(false)} className="rounded border px-2 py-1 text-xs">Close</button></div><div className="grid gap-3">{["student", "totalFee", "paid", "discount", "date"].map((field) => (<label key={field} className="text-xs">{field === "totalFee" ? "Total Fee" : field.charAt(0).toUpperCase() + field.slice(1)}<input type={field === "date" ? "date" : "text"} value={financeForm[field]} onChange={(e) => setFinanceForm((prev) => ({ ...prev, [field]: e.target.value }))} className="mt-1 w-full rounded border px-2 py-2 text-sm" />{financeErrors[field] && <p className="text-xs text-red-600">{financeErrors[field]}</p>}</label>))}<label className="text-xs">Installment<select value={financeForm.installment} onChange={(e) => setFinanceForm((prev) => ({ ...prev, installment: e.target.value }))} className="mt-1 w-full rounded border px-2 py-2 text-sm"><option>No</option><option>Yes</option></select></label></div><div className="mt-4 flex justify-end gap-2"><button onClick={() => setFinanceModal(false)} className="rounded border px-3 py-2 text-xs">Cancel</button><button onClick={saveFinanceEntry} className="rounded border border-black bg-black px-3 py-2 text-xs text-white">Save & Generate Receipt</button></div></div></div>}
+
+      {financeEditModal.open && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"><div className="w-full max-w-lg rounded-2xl border border-[var(--tcmi-border)] bg-white p-5"><div className="mb-4 flex items-center justify-between border-b pb-3"><h4 className="font-heading text-xl">Update Fee Entry</h4><button onClick={() => setFinanceEditModal({ open: false, id: null })} className="rounded border px-2 py-1 text-xs">Close</button></div><div className="grid gap-3">{["student", "totalFee", "paid", "discount", "date"].map((field) => (<label key={field} className="text-xs">{field === "totalFee" ? "Total Fee" : field.charAt(0).toUpperCase() + field.slice(1)}<input type={field === "date" ? "date" : "text"} value={financeEditForm[field]} onChange={(e) => setFinanceEditForm((prev) => ({ ...prev, [field]: e.target.value }))} className="mt-1 w-full rounded border px-2 py-2 text-sm" />{financeEditErrors[field] && <p className="text-xs text-red-600">{financeEditErrors[field]}</p>}</label>))}<label className="text-xs">Installment<select value={financeEditForm.installment} onChange={(e) => setFinanceEditForm((prev) => ({ ...prev, installment: e.target.value }))} className="mt-1 w-full rounded border px-2 py-2 text-sm"><option>No</option><option>Yes</option></select></label></div><div className="mt-4 flex justify-end gap-2"><button onClick={() => setFinanceEditModal({ open: false, id: null })} className="rounded border px-3 py-2 text-xs">Cancel</button><button onClick={saveFinanceUpdate} className="rounded border border-black bg-black px-3 py-2 text-xs text-white">Update Fee</button></div></div></div>}
 
       {openCourseModal && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"><div className="w-full max-w-lg rounded-2xl border border-[var(--tcmi-border)] bg-white p-5"><div className="mb-4 flex items-center justify-between"><h4 className="font-heading text-xl">Add Course</h4><button onClick={() => setOpenCourseModal(false)} className="rounded border px-2 py-1 text-xs">Close</button></div><p className="mb-3 font-body text-sm text-[var(--tcmi-muted)]">Click save to add a sample course card. This operation is prepared for full card CRUD in future.</p><button onClick={() => { const next = courseCards.length + 1; setCourseCards((prev) => [...prev, { id: `CRS-${400 + next}`, title: `New Course ${next}`, type: "Certification", duration: "3 months", fee: "₹22,000", assignment: "0 students assigned" }]); setOpenCourseModal(false); }} className="rounded-lg border border-black bg-black px-3 py-2 text-xs text-white">Save Sample Course</button></div></div>}
     </section>
