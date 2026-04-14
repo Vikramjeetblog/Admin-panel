@@ -8,27 +8,9 @@ export const tcmiSummaryCards = [
 ];
 
 export const tcmiLeadRows = [
-  {
-    name: "Aarav Malhotra",
-    source: "Instagram",
-    status: "Hot",
-    followUp: "16 Apr 2026",
-    notes: "Interested in Diploma - Piano",
-  },
-  {
-    name: "Sara Khan",
-    source: "Referral",
-    status: "Warm",
-    followUp: "17 Apr 2026",
-    notes: "Requested evening batch",
-  },
-  {
-    name: "Vihaan Roy",
-    source: "Website",
-    status: "Cold",
-    followUp: "19 Apr 2026",
-    notes: "Needs financing options",
-  },
+  { name: "Aarav Malhotra", source: "Instagram", status: "Hot", followUp: "16 Apr 2026", notes: "Interested in Diploma - Piano" },
+  { name: "Sara Khan", source: "Referral", status: "Warm", followUp: "17 Apr 2026", notes: "Requested evening batch" },
+  { name: "Vihaan Roy", source: "Website", status: "Cold", followUp: "19 Apr 2026", notes: "Needs financing options" },
 ];
 
 export const tcmiStudentRows = [
@@ -79,6 +61,33 @@ export const tcmiStudentRows = [
   },
 ];
 
+export const tcmiCourseCatalog = [
+  {
+    id: "CRS-101",
+    title: "Certification Level 1",
+    type: "Certification",
+    duration: "3 months",
+    fee: "₹18,000",
+    assignment: "42 students assigned",
+  },
+  {
+    id: "CRS-204",
+    title: "Certification Level 4",
+    type: "Certification",
+    duration: "4 months",
+    fee: "₹34,000",
+    assignment: "31 students assigned",
+  },
+  {
+    id: "CRS-301",
+    title: "Diploma in Music Production",
+    type: "Diploma",
+    duration: "12 months",
+    fee: "₹1,20,000",
+    assignment: "18 students assigned",
+  },
+];
+
 export const tcmiSectionContent = {
   dashboard: {
     title: "Module Dashboard",
@@ -101,18 +110,10 @@ export const tcmiSectionContent = {
   students: {
     title: "Students",
     description: "Central student records for enrollment, profile data, progress, and fee standing.",
-    featureTitle: "Student Management",
-    featureCards: [
-      { title: "Detailed student table", description: "Structured table with course, batch, fees, attendance, exam." },
-      { title: "Student profile with full data", description: "Open full profile view with all core student details." },
-      { title: "Documents upload (ID, form)", description: "Manage ID and registration form uploads in profile." },
-      { title: "Course & batch info", description: "View allocated course and running batch for each student." },
-      { title: "Fees, attendance, exam records", description: "Track fee status, attendance %, and exam grade." },
-    ],
   },
   courses: {
     title: "Courses",
-    description: "Program library with duration, fee structure, capacity, and curriculum status.",
+    description: "Course system with certification and diploma management for scalable card-based operations.",
   },
   batches: {
     title: "Batches",
