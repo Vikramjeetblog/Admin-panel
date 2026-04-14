@@ -1,8 +1,9 @@
 import React, { useMemo, useState } from "react";
 import ModuleSidebar from "../../core/components/ModuleSidebar";
 import { tcmiSections } from "../config/navigation";
-import { tcmiExamRows, tcmiFinanceRows, tcmiLeadRows, tcmiSectionContent, tcmiSummaryCards } from "../data/sectionContent";
+import { tcmiExamRows, tcmiFinanceRows, tcmiLeadRows, tcmiSectionContent } from "../data/sectionContent";
 import TCMIOverviewPanel from "../components/TCMIOverviewPanel";
+import DashboardModule from "../modules/DashboardModule";
 
 const TCMIDashboard = () => {
   const [activeSection, setActiveSection] = useState(tcmiSections[0].key);
@@ -42,33 +43,7 @@ const TCMIDashboard = () => {
         </div>
       </header>
 
-      {showDashboardStats && (
-        <section className="mb-5 rounded-2xl border border-[var(--tcmi-border)] bg-white p-4 lg:p-5">
-          <p className="font-body text-[11px] uppercase tracking-[0.16em] text-[var(--tcmi-muted)]">Dashboard Features</p>
-          <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {tcmiSummaryCards.map((item) => (
-              <div key={item.label} className="rounded-lg border border-[var(--tcmi-border)] bg-[var(--tcmi-soft)] p-4">
-                <p className="font-heading text-2xl text-[var(--tcmi-text)]">{item.value}</p>
-                <p className="mt-1 font-body text-xs uppercase tracking-[0.12em] text-[var(--tcmi-muted)]">{item.label}</p>
-              </div>
-            ))}
-          </div>
-          <div className="mt-4 grid gap-3 lg:grid-cols-3">
-            <div className="rounded-lg border border-[var(--tcmi-border)] p-3">
-              <p className="text-[11px] uppercase tracking-[0.12em] text-[var(--tcmi-muted)]">Recent Leads</p>
-              {recentLeads.map((lead) => <p key={lead.id} className="mt-1 text-sm">{lead.name} · {lead.source}</p>)}
-            </div>
-            <div className="rounded-lg border border-[var(--tcmi-border)] p-3">
-              <p className="text-[11px] uppercase tracking-[0.12em] text-[var(--tcmi-muted)]">Recent Payments</p>
-              {recentPayments.map((payment) => <p key={payment.id} className="mt-1 text-sm">{payment.student} · ₹{payment.paid}</p>)}
-            </div>
-            <div className="rounded-lg border border-[var(--tcmi-border)] p-3">
-              <p className="text-[11px] uppercase tracking-[0.12em] text-[var(--tcmi-muted)]">Upcoming Exams</p>
-              {upcomingExams.map((exam) => <p key={exam.id} className="mt-1 text-sm">{exam.examName} · {exam.batch}</p>)}
-            </div>
-          </div>
-        </section>
-      )}
+      {showDashboardStats && <DashboardModule recentLeads={recentLeads} recentPayments={recentPayments} upcomingExams={upcomingExams} />}
 
       <section className="grid gap-5 lg:grid-cols-[280px_minmax(0,1fr)]">
         <ModuleSidebar
