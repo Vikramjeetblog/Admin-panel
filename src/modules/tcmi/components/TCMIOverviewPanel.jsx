@@ -144,7 +144,7 @@ const TCMIOverviewPanel = ({ content, globalSearch = "", role = "Admin" }) => {
         nationality: student.nationality || "",
         aadhar: student.aadhar || "",
         email: student.email || "",
-        phone: student.phone || "",
+        phone: (student.phone || "").replace(/\D/g, "").slice(-10),
         altPhone: student.altPhone || "",
         guardian: student.guardian || "",
         guardianPhone: student.guardianPhone || "",
@@ -167,7 +167,7 @@ const TCMIOverviewPanel = ({ content, globalSearch = "", role = "Admin" }) => {
     if (!studentForm.nationality.trim()) errors.nationality = "Nationality is required.";
     if (!studentForm.aadhar.trim()) errors.aadhar = "Aadhar/National ID is required.";
     if (!/^\S+@\S+\.\S+$/.test(studentForm.email)) errors.email = "Valid email is required.";
-    if (!studentForm.phone.trim()) errors.phone = "Student mobile is required.";
+    if (!/^\d{10}$/.test(studentForm.phone)) errors.phone = "Student mobile must be exactly 10 digits.";
     if (!studentForm.guardian.trim()) errors.guardian = "Guardian name is required.";
     if (!studentForm.course.trim()) errors.course = "Course assignment is required.";
     if (!studentForm.batch.trim()) errors.batch = "Batch assignment is required.";
@@ -187,6 +187,8 @@ const TCMIOverviewPanel = ({ content, globalSearch = "", role = "Admin" }) => {
       formDoc: "Pending",
       photo: studentPhotoPreview,
     };
+
+    if (studentModal.mode === "edit" && !window.confirm("Are you sure you want to update student details?")) return;
 
     if (studentModal.mode === "add") {
       const newId = `STU-${1000 + studentRows.length + 1}`;
