@@ -1,40 +1,17 @@
-export const tcmiDashboardFeatures = [
-  { label: "Total Students", value: "1,280", hint: "Active enrollments across all batches" },
-  { label: "New Leads", value: "146", hint: "Fresh inquiries this cycle" },
-  { label: "Conversion Rate", value: "38%", hint: "Lead to enrollment conversion" },
-  { label: "Monthly Revenue", value: "₹18.4L", hint: "Collected in current month" },
-  { label: "Pending Fees", value: "₹3.1L", hint: "Outstanding dues to be collected" },
-  { label: "Upcoming Exams", value: "12", hint: "Scheduled in the next window" },
-];
-
-export const tcmiLeadManagementFeatures = [
-  {
-    title: "Add / Edit Leads",
-    description: "Lead form drawer with quick actions to create, update, and assign counselor ownership.",
-  },
-  {
-    title: "Lead Status Tracking",
-    description: "Pipeline columns for New, Contacted, Qualified, and Closed states with visual status chips.",
-  },
-  {
-    title: "Follow-up Reminders",
-    description: "Reminder queue with next follow-up date, overdue indicator, and counselor-wise filters.",
-  },
-  {
-    title: "Notes & Call Logs",
-    description: "Chronological timeline for call summaries, notes, and interaction history per lead.",
-  },
-  {
-    title: "Convert Lead to Student",
-    description: "One-click conversion action to move qualified leads into student enrollment workflow.",
-  },
-];
-
 export const tcmiSectionContent = {
   dashboard: {
     title: "Module Dashboard",
     description:
       "Unified snapshot of admissions, academics, operations, and collections for the TCMI unit.",
+    featureTitle: "Dashboard Features",
+    featureCards: [
+      { title: "Total Students", value: "1,280", description: "Active enrollments across all batches" },
+      { title: "New Leads", value: "146", description: "Fresh inquiries this cycle" },
+      { title: "Conversion Rate", value: "38%", description: "Lead to enrollment conversion" },
+      { title: "Monthly Revenue", value: "₹18.4L", description: "Collected in current month" },
+      { title: "Pending Fees", value: "₹3.1L", description: "Outstanding dues to be collected" },
+      { title: "Upcoming Exams", value: "12", description: "Scheduled in the next window" },
+    ],
     points: [
       "Operational health indicators across all teams",
       "Current admissions funnel and closure velocity",
@@ -45,6 +22,29 @@ export const tcmiSectionContent = {
     title: "Leads",
     description:
       "Track inquiries from first touchpoint to counseling closure with clean lifecycle visibility.",
+    featureTitle: "Lead Management System",
+    featureCards: [
+      {
+        title: "Add / Edit Leads",
+        description: "Lead form drawer with quick actions to create, update, and assign counselor ownership.",
+      },
+      {
+        title: "Lead Status Tracking",
+        description: "Pipeline columns for New, Contacted, Qualified, and Closed states with visual status chips.",
+      },
+      {
+        title: "Follow-up Reminders",
+        description: "Reminder queue with next follow-up date, overdue indicator, and counselor-wise filters.",
+      },
+      {
+        title: "Notes & Call Logs",
+        description: "Chronological timeline for call summaries, notes, and interaction history per lead.",
+      },
+      {
+        title: "Convert Lead to Student",
+        description: "One-click conversion action to move qualified leads into student enrollment workflow.",
+      },
+    ],
     points: [
       "Source-wise lead segmentation",
       "Follow-up timeline and counselor assignment",

@@ -1,17 +1,11 @@
 import React from "react";
 
-const TCMIOverviewPanel = ({
-  content,
-  activeSection,
-  dashboardFeatures = [],
-  leadManagementFeatures = [],
-}) => {
+const TCMIOverviewPanel = ({ content }) => {
   if (!content) {
     return null;
   }
 
-  const isDashboard = activeSection === "dashboard";
-  const isLeads = activeSection === "leads";
+  const hasFeatureCards = Array.isArray(content.featureCards) && content.featureCards.length > 0;
 
   return (
     <section className="rounded-2xl border border-[var(--tcmi-border)] bg-white p-5 lg:p-7">
@@ -21,28 +15,16 @@ const TCMIOverviewPanel = ({
         <p className="max-w-3xl font-body text-sm text-[var(--tcmi-muted)]">{content.description}</p>
       </div>
 
-      {isDashboard && (
+      {hasFeatureCards && (
         <div className="mt-5 border-b border-[var(--tcmi-border)] pb-5">
-          <p className="font-body text-[11px] uppercase tracking-[0.16em] text-[var(--tcmi-muted)]">Dashboard Features</p>
+          <p className="font-body text-[11px] uppercase tracking-[0.16em] text-[var(--tcmi-muted)]">
+            {content.featureTitle || "Features"}
+          </p>
           <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {dashboardFeatures.map((feature) => (
-              <article key={feature.label} className="rounded-xl border border-[var(--tcmi-border)] bg-white p-4">
-                <p className="font-body text-[11px] uppercase tracking-[0.14em] text-[var(--tcmi-muted)]">{feature.label}</p>
-                <p className="mt-2 font-heading text-2xl text-[var(--tcmi-text)]">{feature.value}</p>
-                <p className="mt-1 font-body text-xs text-[var(--tcmi-muted)]">{feature.hint}</p>
-              </article>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {isLeads && (
-        <div className="mt-5 border-b border-[var(--tcmi-border)] pb-5">
-          <p className="font-body text-[11px] uppercase tracking-[0.16em] text-[var(--tcmi-muted)]">Lead Management System</p>
-          <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {leadManagementFeatures.map((feature) => (
+            {content.featureCards.map((feature) => (
               <article key={feature.title} className="rounded-xl border border-[var(--tcmi-border)] bg-[var(--tcmi-soft)] p-4">
                 <p className="font-heading text-lg text-[var(--tcmi-text)]">{feature.title}</p>
+                {feature.value && <p className="mt-2 font-heading text-2xl text-[var(--tcmi-text)]">{feature.value}</p>}
                 <p className="mt-2 font-body text-xs text-[var(--tcmi-muted)]">{feature.description}</p>
               </article>
             ))}

@@ -1,11 +1,7 @@
 import React, { useMemo, useState } from "react";
 import ModuleSidebar from "../../core/components/ModuleSidebar";
 import { tcmiSections } from "../config/navigation";
-import {
-  tcmiDashboardFeatures,
-  tcmiLeadManagementFeatures,
-  tcmiSectionContent,
-} from "../data/sectionContent";
+import { tcmiSectionContent } from "../data/sectionContent";
 import TCMIOverviewPanel from "../components/TCMIOverviewPanel";
 
 const TCMIDashboard = () => {
@@ -41,12 +37,7 @@ const TCMIDashboard = () => {
           onSelectSection={setActiveSection}
         />
 
-        <TCMIOverviewPanel
-          content={activeContent}
-          activeSection={activeSection}
-          dashboardFeatures={tcmiDashboardFeatures}
-          leadManagementFeatures={tcmiLeadManagementFeatures}
-        />
+        <TCMIOverviewPanel content={activeContent} />
       </section>
     </div>
   );
