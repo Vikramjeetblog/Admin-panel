@@ -213,6 +213,19 @@ const statusClass = {
 
 const headingStyle = { fontFamily: '"Cooper Hewitt Heavy", "Syne", sans-serif' };
 const bodyStyle = { fontFamily: '"Canva Sans", "Inter", "JetBrains Mono", sans-serif' };
+  const cardClass = "rounded-2xl border border-gray-200 bg-white p-4 sm:p-5 transition duration-200 hover:border-black";
+
+
+const TableHeader = ({ titles }) => (
+  <div
+    className="grid border-b border-gray-200 bg-gray-50 px-4 py-3 text-xs uppercase tracking-[0.15em] text-gray-500"
+    style={{ gridTemplateColumns: `repeat(${titles.length}, minmax(0, 1fr))` }}
+  >
+    {titles.map((title) => (
+      <div key={title}>{title}</div>
+    ))}
+  </div>
+);
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
 
@@ -260,19 +273,7 @@ const bodyStyle = { fontFamily: '"Canva Sans", "Inter", "JetBrains Mono", sans-s
             <FiUserPlus size={16} />
             Add Student
           </button>
-const cardClass = "rounded-2xl border border-gray-200 bg-white p-4 sm:p-5 transition duration-200 hover:border-black";
 
-
-const TableHeader = ({ titles }) => (
-  <div
-    className="grid border-b border-gray-200 bg-gray-50 px-4 py-3 text-xs uppercase tracking-[0.15em] text-gray-500"
-    style={{ gridTemplateColumns: `repeat(${titles.length}, minmax(0, 1fr))` }}
-  >
-    {titles.map((title) => (
-      <div key={title}>{title}</div>
-    ))}
-  </div>
-);
 
 const Modal = ({ title, fields, onClose }) => (
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
