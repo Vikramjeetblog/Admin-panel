@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import ModuleSidebar from "../../core/components/ModuleSidebar";
 import { tcmiSections } from "../config/navigation";
-import { tcmiDashboardFeatures, tcmiSectionContent } from "../data/sectionContent";
+import { tcmiSectionContent, tcmiSummaryCards } from "../data/sectionContent";
 import TCMIOverviewPanel from "../components/TCMIOverviewPanel";
 
 const TCMIDashboard = () => {
@@ -28,8 +28,8 @@ const TCMIDashboard = () => {
         </div>
       </header>
 
-      <section className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        {tcmiDashboardFeatures.map((card) => (
+      <section className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {tcmiSummaryCards.map((card) => (
           <article key={card.label} className="rounded-2xl border border-[var(--tcmi-border)] bg-white p-4 lg:p-5">
             <p className="font-body text-[11px] uppercase tracking-[0.16em] text-[var(--tcmi-muted)]">{card.label}</p>
             <p className="mt-3 font-heading text-3xl text-[var(--tcmi-text)]">{card.value}</p>
