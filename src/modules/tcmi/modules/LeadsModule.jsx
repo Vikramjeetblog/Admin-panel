@@ -1,9 +1,12 @@
 import React, { useMemo, useState } from "react";
 import { format } from "date-fns";
-import { FiEdit2, FiEye, FiPlus, FiSearch, FiTrash2 } from "react-icons/fi";
+import { FiEdit2, FiEye, FiTrash2 } from "react-icons/fi";
 import Modal from "../components/Modal";
 import TableHeader from "../components/TableHeader";
 import { tcmiLeadRows } from "../data/sectionContent";
+import LeadFormModal from "./leads/LeadFormModal";
+import LeadsToolbar from "./leads/LeadsToolbar";
+import { normalizePhone, validateLeadForm } from "./leads/leadsUtils";
 
 const emptyForm = { name: "", phone: "", status: "Warm", notes: "" };
 const pageSize = 8;
@@ -44,16 +47,17 @@ const LeadsModule = ({ globalSearch = "" }) => {
   const openLeadModal = (mode, row = null) => {
     setErrors({});
     setLeadModal({ open: true, mode, id: row?.id || null });
-    setLeadForm(row ? { name: row.name, phone: row.phone || "", status: row.status || "Warm", notes: row.notes || "" } : emptyForm);
+    setLeadForm(row ? { name: row.name, phone: normalizePhone(row.phone || ""), status: row.status || "Warm", notes: row.notes || "" } : emptyForm);
   };
 
   const saveLead = () => {
-    const nextErrors = {};
-    if (!leadForm.name.trim()) nextErrors.name = "Name is required.";
-    if (!leadForm.phone.trim()) nextErrors.phone = "Phone is required.";
-    if (!leadForm.notes.trim()) nextErrors.notes = "Notes are required.";
+    const nextErrors = validateLeadForm(leadForm);
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) return;
+
+    if (leadModal.mode === "edit" && !window.confirm("Are you sure you want to update lead details?")) {
+      return;
+    }
 
     if (leadModal.mode === "add") {
       setRows((prev) => [{ id: `LD-${1000 + prev.length + 1}`, source: "Manual", leadPercentage: 0, followUp: new Date().toISOString().slice(0, 10), converted: false, ...leadForm }, ...prev]);
@@ -76,19 +80,7 @@ const LeadsModule = ({ globalSearch = "" }) => {
     <div className="mt-5 space-y-3">
       {toast && <div className="rounded-lg border border-gray-200 bg-white p-2 text-sm">{toast}</div>}
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="relative">
-            <FiSearch className="absolute left-2 top-2.5 text-gray-500" size={14} />
-            <input value={filters.search} onChange={(e) => { setFilters((prev) => ({ ...prev, search: e.target.value })); setPage(1); }} placeholder="Search leads..." className="rounded-lg border border-gray-200 py-2 pl-8 pr-3 text-xs" />
-          </div>
-          <select value={filters.status} onChange={(e) => { setFilters((prev) => ({ ...prev, status: e.target.value })); setPage(1); }} className="rounded-lg border border-gray-200 px-3 py-2 text-xs">
-            <option>All</option><option>Hot</option><option>Warm</option><option>Cold</option>
-          </select>
-          <button onClick={() => setFilters({ search: "", status: "All" })} className="rounded-lg border border-gray-200 px-3 py-2 text-xs hover:bg-gray-50">Clear Filters</button>
-        </div>
-        <button onClick={() => openLeadModal("add")} className="inline-flex items-center gap-1 rounded-lg border border-black bg-black px-3 py-2 text-xs text-white"><FiPlus size={14} /> Add Lead</button>
-      </div>
+      <LeadsToolbar filters={filters} setFilters={setFilters} setPage={setPage} onOpenAdd={() => openLeadModal("add")} />
 
       {selectedIds.length > 0 && (
         <div className="flex items-center gap-2 rounded-lg border border-gray-200 p-2 text-xs">
@@ -147,24 +139,15 @@ const LeadsModule = ({ globalSearch = "" }) => {
         </div>
       </div>
 
-      <Modal
-        open={leadModal.open}
-        title={leadModal.mode === "add" ? "Add Lead" : leadModal.mode === "edit" ? "Edit Lead" : "View Lead"}
-        onClose={() => setLeadModal({ open: false, mode: "add", id: null })}
-        footer={leadModal.mode !== "view" ? (
-          <>
-            <button onClick={() => setLeadModal({ open: false, mode: "add", id: null })} className="rounded-lg border border-gray-200 px-3 py-2 text-xs hover:bg-gray-50">Cancel</button>
-            <button onClick={saveLead} className="rounded-lg border border-black bg-black px-3 py-2 text-xs text-white">Save</button>
-          </>
-        ) : null}
-      >
-        <div className="grid gap-3 sm:grid-cols-2">
-          <label className="text-xs">Name<input value={leadForm.name} onChange={(e) => setLeadForm((prev) => ({ ...prev, name: e.target.value }))} readOnly={leadModal.mode === "view"} className="mt-1 w-full rounded-lg border border-gray-200 px-2 py-2" />{errors.name && <p className="mt-1 text-xs text-gray-600">{errors.name}</p>}</label>
-          <label className="text-xs">Phone<input value={leadForm.phone} onChange={(e) => setLeadForm((prev) => ({ ...prev, phone: e.target.value }))} readOnly={leadModal.mode === "view"} className="mt-1 w-full rounded-lg border border-gray-200 px-2 py-2" />{errors.phone && <p className="mt-1 text-xs text-gray-600">{errors.phone}</p>}</label>
-          <label className="text-xs">Status<select value={leadForm.status} onChange={(e) => setLeadForm((prev) => ({ ...prev, status: e.target.value }))} disabled={leadModal.mode === "view"} className="mt-1 w-full rounded-lg border border-gray-200 px-2 py-2"><option>Hot</option><option>Warm</option><option>Cold</option></select></label>
-          <label className="text-xs sm:col-span-2">Notes<textarea value={leadForm.notes} onChange={(e) => setLeadForm((prev) => ({ ...prev, notes: e.target.value }))} readOnly={leadModal.mode === "view"} className="mt-1 w-full rounded-lg border border-gray-200 px-2 py-2" rows={3} />{errors.notes && <p className="mt-1 text-xs text-gray-600">{errors.notes}</p>}</label>
-        </div>
-      </Modal>
+      <LeadFormModal
+        leadModal={leadModal}
+        setLeadModal={setLeadModal}
+        leadForm={leadForm}
+        setLeadForm={setLeadForm}
+        errors={errors}
+        onSave={saveLead}
+        normalizePhone={normalizePhone}
+      />
 
       <Modal
         open={confirmDelete.open}
