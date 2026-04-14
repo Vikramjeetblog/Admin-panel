@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { format } from "date-fns";
-import { FiEdit2, FiEye, FiPlus, FiSearch, FiTrash2, FiX } from "react-icons/fi";
-import Badge from "../components/Badge";
+import { FiEdit2, FiEye, FiPlus, FiSearch, FiTrash2 } from "react-icons/fi";
 import Modal from "../components/Modal";
 import TableHeader from "../components/TableHeader";
 import { tcmiLeadRows } from "../data/sectionContent";
