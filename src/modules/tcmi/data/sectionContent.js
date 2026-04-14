@@ -112,6 +112,32 @@ export const tcmiCourseCatalog = [
   },
 ];
 
+
+export const tcmiFinanceRows = [
+  {
+    id: "FIN-1001",
+    student: "Nisha Mehta",
+    totalFee: 34000,
+    paid: 34000,
+    discount: 0,
+    installment: "No",
+    due: 0,
+    receipt: "REC-5001",
+    date: "2026-04-14",
+  },
+  {
+    id: "FIN-1002",
+    student: "Ritvik Suri",
+    totalFee: 60000,
+    paid: 45000,
+    discount: 2000,
+    installment: "Yes",
+    due: 13000,
+    receipt: "REC-5002",
+    date: "2026-04-13",
+  },
+];
+
 export const tcmiSectionContent = {
   dashboard: {
     title: "Module Dashboard",
@@ -157,7 +183,7 @@ export const tcmiSectionContent = {
   },
   finance: {
     title: "Finance",
-    description: "End-to-end fee lifecycle management from invoicing to dues reconciliation.",
+    description: "Track payments, installments, discounts, receipts, and pending dues with full card operations.",
   },
   documents: {
     title: "Documents",
