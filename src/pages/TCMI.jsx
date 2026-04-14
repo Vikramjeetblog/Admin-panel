@@ -183,6 +183,14 @@ const batchData = [
   { code: "PIA-L2-EVE", trainer: "Shreya Dutta", timing: "Mon-Wed-Fri | 6:00 PM", students: 22 },
   { code: "GTR-L3-MOR", trainer: "Karan Singh", timing: "Tue-Thu | 9:00 AM", students: 16 },
 ];
+  const examData = [
+  { exam: "Quarterly Skill Assessment", batch: "VOC-L4-WKD", date: "22 Apr 2026", marksType: "Theory + Practical" },
+  { exam: "Diploma Mid-Term", batch: "SD-DIP-MOR", date: "26 Apr 2026", marksType: "Practical" },
+];
+  const financeData = [
+  { student: "Ritvik Suri", plan: "Installment", paid: "₹45,000", due: "₹15,000", receipt: "REC-1024" },
+  { student: "Nisha Mehta", plan: "Full Payment", paid: "₹34,000", due: "₹0", receipt: "REC-1030" },
+];
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
 
@@ -192,17 +200,11 @@ const batchData = [
         <p className="text-xs uppercase text-gray-400">Brands / TCMI</p>
         <h1 className="text-4xl italic">Music Institute</h1>
       </div>
-const examData = [
-  { exam: "Quarterly Skill Assessment", batch: "VOC-L4-WKD", date: "22 Apr 2026", marksType: "Theory + Practical" },
-  { exam: "Diploma Mid-Term", batch: "SD-DIP-MOR", date: "26 Apr 2026", marksType: "Practical" },
-];
+
 
       {/* TOP BAR */}
       <div className="flex justify-between items-center gap-3 flex-wrap">
-const financeData = [
-  { student: "Ritvik Suri", plan: "Installment", paid: "₹45,000", due: "₹15,000", receipt: "REC-1024" },
-  { student: "Nisha Mehta", plan: "Full Payment", paid: "₹34,000", due: "₹0", receipt: "REC-1030" },
-];
+
 
         <input
           placeholder="Search student..."
