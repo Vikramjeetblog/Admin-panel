@@ -1,8 +1,34 @@
 export const tcmiSummaryCards = [
-  { label: "Active Students", value: "1,284", hint: "+6.2% from last month" },
-  { label: "Open Leads", value: "146", hint: "39 high-priority in queue" },
-  { label: "Live Batches", value: "32", hint: "4 new weekend batches" },
-  { label: "Collected Revenue", value: "₹18.4L", hint: "Quarterly trend is up" },
+  { label: "Total Students", value: "1,280", hint: "Active enrollments across all batches" },
+  { label: "New Leads", value: "146", hint: "Fresh inquiries this cycle" },
+  { label: "Conversion Rate", value: "38%", hint: "Lead to enrollment conversion" },
+  { label: "Monthly Revenue", value: "₹18.4L", hint: "Collected in current month" },
+  { label: "Pending Fees", value: "₹3.1L", hint: "Outstanding dues to be collected" },
+  { label: "Upcoming Exams", value: "12", hint: "Scheduled in the next window" },
+];
+
+export const tcmiLeadRows = [
+  {
+    name: "Aarav Malhotra",
+    source: "Instagram",
+    status: "Hot",
+    followUp: "16 Apr 2026",
+    notes: "Interested in Diploma - Piano",
+  },
+  {
+    name: "Sara Khan",
+    source: "Referral",
+    status: "Warm",
+    followUp: "17 Apr 2026",
+    notes: "Requested evening batch",
+  },
+  {
+    name: "Vihaan Roy",
+    source: "Website",
+    status: "Cold",
+    followUp: "19 Apr 2026",
+    notes: "Needs financing options",
+  },
 ];
 
 export const tcmiSectionContent = {
@@ -10,6 +36,12 @@ export const tcmiSectionContent = {
     title: "Module Dashboard",
     description:
       "Unified snapshot of admissions, academics, operations, and collections for the TCMI unit.",
+    featureTitle: "Dashboard Features",
+    featureCards: tcmiSummaryCards.map((card) => ({
+      title: card.label,
+      value: card.value,
+      description: card.hint,
+    })),
     points: [
       "Operational health indicators across all teams",
       "Current admissions funnel and closure velocity",
@@ -20,6 +52,29 @@ export const tcmiSectionContent = {
     title: "Leads",
     description:
       "Track inquiries from first touchpoint to counseling closure with clean lifecycle visibility.",
+    featureTitle: "Lead Management System",
+    featureCards: [
+      {
+        title: "Add / Edit Leads",
+        description: "Lead form drawer with quick actions to create, update, and assign counselor ownership.",
+      },
+      {
+        title: "Lead Status Tracking",
+        description: "Pipeline columns for New, Contacted, Qualified, and Closed states with visual status chips.",
+      },
+      {
+        title: "Follow-up Reminders",
+        description: "Reminder queue with next follow-up date, overdue indicator, and counselor-wise filters.",
+      },
+      {
+        title: "Notes & Call Logs",
+        description: "Chronological timeline for call summaries, notes, and interaction history per lead.",
+      },
+      {
+        title: "Convert Lead to Student",
+        description: "One-click conversion action to move qualified leads into student enrollment workflow.",
+      },
+    ],
     points: [
       "Source-wise lead segmentation",
       "Follow-up timeline and counselor assignment",
