@@ -1,10 +1,8 @@
-export const tcmiDashboardFeatures = [
-  { label: "Total Students", value: "1,280", hint: "Active enrollments across all batches" },
-  { label: "New Leads", value: "146", hint: "Fresh inquiries this cycle" },
-  { label: "Conversion Rate", value: "38%", hint: "Lead to enrollment conversion" },
-  { label: "Monthly Revenue", value: "₹18.4L", hint: "Collected in current month" },
-  { label: "Pending Fees", value: "₹3.1L", hint: "Outstanding dues to be collected" },
-  { label: "Upcoming Exams", value: "12", hint: "Scheduled in the next window" },
+export const tcmiSummaryCards = [
+  { label: "Active Students", value: "1,284", hint: "+6.2% from last month" },
+  { label: "Open Leads", value: "146", hint: "39 high-priority in queue" },
+  { label: "Live Batches", value: "32", hint: "4 new weekend batches" },
+  { label: "Collected Revenue", value: "₹18.4L", hint: "Quarterly trend is up" },
 ];
 
 export const tcmiSectionContent = {
