@@ -70,15 +70,15 @@ const TCMIOverviewPanel = ({ content, globalSearch = "", role = "Admin" }) => {
   const [assignCount, setAssignCount] = useState("0");
   const [assignError, setAssignError] = useState("");
   const [batchRows, setBatchRows] = useState(tcmiBatchRows);
-  const [batchModal, setBatchModal] = useState(false);
+  const [batchModal, setBatchModal] = useState({ open: false, mode: "add", id: null });
   const [batchForm, setBatchForm] = useState(defaultBatchForm);
   const [batchErrors, setBatchErrors] = useState({});
   const [attendanceRows, setAttendanceRows] = useState(tcmiAttendanceRows);
-  const [attendanceModal, setAttendanceModal] = useState(false);
+  const [attendanceModal, setAttendanceModal] = useState({ open: false, mode: "add", id: null });
   const [attendanceForm, setAttendanceForm] = useState(defaultAttendanceForm);
   const [attendanceErrors, setAttendanceErrors] = useState({});
   const [examRows, setExamRows] = useState(tcmiExamRows);
-  const [examModuleModal, setExamModuleModal] = useState(false);
+  const [examModuleModal, setExamModuleModal] = useState({ open: false, mode: "add", id: null });
   const [examModuleForm, setExamModuleForm] = useState(defaultExamModuleForm);
   const [examModuleErrors, setExamModuleErrors] = useState({});
   const [certificateRows, setCertificateRows] = useState(tcmiCertificateRows);
@@ -86,7 +86,7 @@ const TCMIOverviewPanel = ({ content, globalSearch = "", role = "Admin" }) => {
   const [certificateForm, setCertificateForm] = useState(defaultCertificateForm);
   const [certificateErrors, setCertificateErrors] = useState({});
   const [documentRows, setDocumentRows] = useState(tcmiDocumentRows);
-  const [documentModal, setDocumentModal] = useState(false);
+  const [documentModal, setDocumentModal] = useState({ open: false, mode: "add", id: null });
   const [documentForm, setDocumentForm] = useState(defaultDocumentForm);
   const [documentErrors, setDocumentErrors] = useState({});
   const [selectedStudentIds, setSelectedStudentIds] = useState([]);
@@ -263,6 +263,63 @@ const TCMIOverviewPanel = ({ content, globalSearch = "", role = "Admin" }) => {
       setAssignModal({ open: false, courseId: null });
       setToastMessage("Course assignment updated.");
     }
+    if (confirmDialog.type === "batch_update") {
+      const { id, form } = confirmDialog.payload;
+      const students = Number(form.students);
+      setBatchRows((prev) =>
+        prev.map((row) =>
+          row.id === id
+            ? { ...row, batchName: form.batchName.trim(), course: form.course.trim(), trainer: form.trainer.trim(), students, schedule: form.schedule.trim(), mode: form.mode }
+            : row
+        )
+      );
+      setBatchModal({ open: false, mode: "add", id: null });
+      setToastMessage("Batch updated successfully.");
+    }
+    if (confirmDialog.type === "batch_delete") {
+      setBatchRows((prev) => prev.filter((row) => row.id !== confirmDialog.payload));
+      setToastMessage("Batch deleted.");
+    }
+    if (confirmDialog.type === "attendance_update") {
+      const { id, form } = confirmDialog.payload;
+      setAttendanceRows((prev) =>
+        prev.map((row) =>
+          row.id === id ? { ...row, date: form.date, batch: form.batch.trim(), student: form.student.trim(), status: form.status } : row
+        )
+      );
+      setAttendanceModal({ open: false, mode: "add", id: null });
+      setToastMessage("Attendance updated successfully.");
+    }
+    if (confirmDialog.type === "exam_update") {
+      const { id, form, totalMarks } = confirmDialog.payload;
+      setExamRows((prev) =>
+        prev.map((row) =>
+          row.id === id
+            ? { ...row, examName: form.examName.trim(), batch: form.batch.trim(), student: form.student.trim(), theoryMarks: Number(form.theoryMarks), practicalMarks: Number(form.practicalMarks), totalMarks, grade: calculateGrade(totalMarks), examDate: form.examDate }
+            : row
+        )
+      );
+      setExamModuleModal({ open: false, mode: "add", id: null });
+      setToastMessage("Exam updated successfully.");
+    }
+    if (confirmDialog.type === "exam_delete") {
+      setExamRows((prev) => prev.filter((row) => row.id !== confirmDialog.payload));
+      setToastMessage("Exam record deleted.");
+    }
+    if (confirmDialog.type === "document_update") {
+      const { id, form } = confirmDialog.payload;
+      setDocumentRows((prev) =>
+        prev.map((row) =>
+          row.id === id ? { ...row, student: form.student.trim(), batch: form.batch.trim(), docType: form.docType, fileName: form.fileName.trim(), uploadedOn: form.uploadedOn } : row
+        )
+      );
+      setDocumentModal({ open: false, mode: "add", id: null });
+      setToastMessage("Document updated successfully.");
+    }
+    if (confirmDialog.type === "document_delete") {
+      setDocumentRows((prev) => prev.filter((row) => row.id !== confirmDialog.payload));
+      setToastMessage("Document deleted.");
+    }
     setConfirmDialog({ open: false, type: "", payload: null, message: "" });
     setTimeout(() => setToastMessage(""), 2000);
   };
@@ -360,7 +417,108 @@ const TCMIOverviewPanel = ({ content, globalSearch = "", role = "Admin" }) => {
   const openBatchDialog = () => {
     setBatchErrors({});
     setBatchForm(defaultBatchForm);
-    setBatchModal(true);
+    setBatchModal({ open: true, mode: "add", id: null });
+  };
+
+  const openBatchEditDialog = (row) => {
+    setBatchErrors({});
+    setBatchForm({
+      batchName: row.batchName,
+      course: row.course,
+      trainer: row.trainer,
+      students: String(row.students),
+      schedule: row.schedule,
+      mode: row.mode,
+    });
+    setBatchModal({ open: true, mode: "edit", id: row.id });
+  };
+
+  const parseAssignedStudents = (assignment = "") => {
+    const match = assignment.match(/\d+/);
+    return match ? Number(match[0]) : 0;
+  };
+
+  const formatAssignment = (count) => `${count} students assigned`;
+
+  const openCourseDialog = (mode, course = null) => {
+    setCourseErrors({});
+    if (mode === "edit" && course) {
+      setCourseForm({
+        title: course.title,
+        type: course.type,
+        duration: course.duration,
+        fee: String(course.fee || "").replace(/[^\d.]/g, ""),
+      });
+      setCourseModalState({ open: true, mode: "edit", id: course.id });
+      return;
+    }
+
+    setCourseForm(defaultCourseForm);
+    setCourseModalState({ open: true, mode: "add", id: null });
+  };
+
+  const validateCourseForm = () => {
+    const errors = {};
+    const feeNumber = Number(courseForm.fee);
+
+    if (!courseForm.title.trim()) errors.title = "Course title is required.";
+    if (!courseForm.duration.trim()) errors.duration = "Duration is required.";
+    if (Number.isNaN(feeNumber) || feeNumber <= 0) errors.fee = "Fee must be greater than 0.";
+
+    setCourseErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const saveCourse = () => {
+    if (!validateCourseForm()) return;
+
+    const fee = `₹${Number(courseForm.fee).toLocaleString("en-IN")}`;
+
+    if (courseModalState.mode === "edit") {
+      requestDelete(
+        "course_update",
+        { id: courseModalState.id, form: { ...courseForm } },
+        "Are you sure you want to update this course?"
+      );
+    } else {
+      const next = courseCards.length + 1;
+      setCourseCards((prev) => [
+        ...prev,
+        {
+          id: `CRS-${400 + next}`,
+          title: courseForm.title.trim(),
+          type: courseForm.type,
+          duration: courseForm.duration.trim(),
+          fee,
+          assignment: "0 students assigned",
+        },
+      ]);
+      setToastMessage("Course added successfully.");
+      setCourseModalState({ open: false, mode: "add", id: null });
+      setCourseForm(defaultCourseForm);
+      setTimeout(() => setToastMessage(""), 2000);
+    }
+  };
+
+  const openAssignDialog = (course) => {
+    setAssignError("");
+    setAssignCount(String(parseAssignedStudents(course.assignment)));
+    setAssignModal({ open: true, courseId: course.id });
+  };
+
+  const saveAssignment = () => {
+    const nextCount = Number(assignCount);
+
+    if (Number.isNaN(nextCount) || nextCount < 0) {
+      setAssignError("Assigned students must be 0 or more.");
+      return;
+    }
+
+    requestDelete(
+      "course_assign_update",
+      { courseId: assignModal.courseId, assignedCount: nextCount },
+      "Are you sure you want to update assigned students for this course?"
+    );
   };
 
   const parseAssignedStudents = (assignment = "") => {
@@ -464,6 +622,11 @@ const TCMIOverviewPanel = ({ content, globalSearch = "", role = "Admin" }) => {
     setBatchErrors(errors);
     if (Object.keys(errors).length) return;
 
+    if (batchModal.mode === "edit") {
+      requestDelete("batch_update", { id: batchModal.id, form: { ...batchForm } }, "Are you sure you want to update this batch?");
+      return;
+    }
+
     setBatchRows((prev) => [
       {
         id: `BAT-${200 + prev.length + 1}`,
@@ -476,13 +639,24 @@ const TCMIOverviewPanel = ({ content, globalSearch = "", role = "Admin" }) => {
       },
       ...prev,
     ]);
-    setBatchModal(false);
+    setBatchModal({ open: false, mode: "add", id: null });
   };
 
   const openAttendanceDialog = () => {
     setAttendanceErrors({});
     setAttendanceForm({ ...defaultAttendanceForm, date: format(new Date(), "yyyy-MM-dd") });
-    setAttendanceModal(true);
+    setAttendanceModal({ open: true, mode: "add", id: null });
+  };
+
+  const openAttendanceEditDialog = (row) => {
+    setAttendanceErrors({});
+    setAttendanceForm({
+      date: row.date,
+      batch: row.batch,
+      student: row.student,
+      status: row.status,
+    });
+    setAttendanceModal({ open: true, mode: "edit", id: row.id });
   };
 
   const saveAttendance = () => {
@@ -494,6 +668,7 @@ const TCMIOverviewPanel = ({ content, globalSearch = "", role = "Admin" }) => {
 
     const duplicate = attendanceRows.find(
       (row) =>
+        row.id !== attendanceModal.id &&
         row.date === attendanceForm.date &&
         row.batch.toLowerCase() === attendanceForm.batch.trim().toLowerCase() &&
         row.student.toLowerCase() === attendanceForm.student.trim().toLowerCase()
@@ -503,17 +678,39 @@ const TCMIOverviewPanel = ({ content, globalSearch = "", role = "Admin" }) => {
     setAttendanceErrors(errors);
     if (Object.keys(errors).length) return;
 
+    if (attendanceModal.mode === "edit") {
+      requestDelete(
+        "attendance_update",
+        { id: attendanceModal.id, form: { ...attendanceForm } },
+        "Are you sure you want to update this attendance entry?"
+      );
+      return;
+    }
+
     setAttendanceRows((prev) => [
       { id: `ATT-${1000 + prev.length + 1}`, date: attendanceForm.date, batch: attendanceForm.batch.trim(), student: attendanceForm.student.trim(), status: attendanceForm.status },
       ...prev,
     ]);
-    setAttendanceModal(false);
+    setAttendanceModal({ open: false, mode: "add", id: null });
   };
 
   const openExamModuleDialog = () => {
     setExamModuleErrors({});
     setExamModuleForm({ ...defaultExamModuleForm, examDate: format(new Date(), "yyyy-MM-dd") });
-    setExamModuleModal(true);
+    setExamModuleModal({ open: true, mode: "add", id: null });
+  };
+
+  const openExamEditDialog = (row) => {
+    setExamModuleErrors({});
+    setExamModuleForm({
+      examName: row.examName,
+      batch: row.batch,
+      student: row.student,
+      theoryMarks: String(row.theoryMarks),
+      practicalMarks: String(row.practicalMarks),
+      examDate: row.examDate,
+    });
+    setExamModuleModal({ open: true, mode: "edit", id: row.id });
   };
 
   const calculateGrade = (total) => {
@@ -540,6 +737,15 @@ const TCMIOverviewPanel = ({ content, globalSearch = "", role = "Admin" }) => {
     if (Object.keys(errors).length) return;
 
     const totalMarks = theory + practical;
+    if (examModuleModal.mode === "edit") {
+      requestDelete(
+        "exam_update",
+        { id: examModuleModal.id, form: { ...examModuleForm }, totalMarks },
+        "Are you sure you want to update this exam record?"
+      );
+      return;
+    }
+
     setExamRows((prev) => [
       {
         id: `EX-${1000 + prev.length + 1}`,
@@ -554,7 +760,7 @@ const TCMIOverviewPanel = ({ content, globalSearch = "", role = "Admin" }) => {
       },
       ...prev,
     ]);
-    setExamModuleModal(false);
+    setExamModuleModal({ open: false, mode: "add", id: null });
   };
 
   const openCertificateDialog = () => {
@@ -583,7 +789,19 @@ const TCMIOverviewPanel = ({ content, globalSearch = "", role = "Admin" }) => {
   const openDocumentDialog = () => {
     setDocumentErrors({});
     setDocumentForm({ ...defaultDocumentForm, uploadedOn: format(new Date(), "yyyy-MM-dd") });
-    setDocumentModal(true);
+    setDocumentModal({ open: true, mode: "add", id: null });
+  };
+
+  const openDocumentEditDialog = (row) => {
+    setDocumentErrors({});
+    setDocumentForm({
+      student: row.student,
+      batch: row.batch,
+      docType: row.docType,
+      fileName: row.fileName,
+      uploadedOn: row.uploadedOn,
+    });
+    setDocumentModal({ open: true, mode: "edit", id: row.id });
   };
 
   const saveDocument = () => {
@@ -599,11 +817,20 @@ const TCMIOverviewPanel = ({ content, globalSearch = "", role = "Admin" }) => {
     setDocumentErrors(errors);
     if (Object.keys(errors).length) return;
 
+    if (documentModal.mode === "edit") {
+      requestDelete(
+        "document_update",
+        { id: documentModal.id, form: { ...documentForm } },
+        "Are you sure you want to update this document record?"
+      );
+      return;
+    }
+
     setDocumentRows((prev) => [
       { id: `DOC-${1000 + prev.length + 1}`, student: documentForm.student.trim(), batch: documentForm.batch.trim(), docType: documentForm.docType, fileName: documentForm.fileName.trim(), status: "Pending", uploadedOn: documentForm.uploadedOn },
       ...prev,
     ]);
-    setDocumentModal(false);
+    setDocumentModal({ open: false, mode: "add", id: null });
   };
 
   const attendanceByBatch = Object.values(
@@ -706,11 +933,11 @@ const TCMIOverviewPanel = ({ content, globalSearch = "", role = "Admin" }) => {
 
       {isCourses && <div className="mt-5"><div className="mb-3 flex items-center justify-between"><p className="font-body text-[11px] uppercase tracking-[0.16em] text-[var(--tcmi-muted)]">Course System</p><button type="button" onClick={() => openCourseDialog("add")} className="inline-flex items-center gap-1 rounded-lg border border-black bg-black px-3 py-2 font-body text-xs text-white hover:bg-gray-800"><FiPlus size={14} /> Add Course</button></div><div className="mb-3 flex flex-wrap gap-2">{["Certification (Level 1–4)", "Diploma programs", "Duration & fee setup", "Student assignment"].map((tag) => (<span key={tag} className="rounded-full border border-[var(--tcmi-border)] px-3 py-1 font-body text-xs">{tag}</span>))}</div><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{courseCards.map((course) => (<article key={course.id} className="rounded-xl border border-[var(--tcmi-border)] bg-white p-4"><p className="font-heading text-lg">{course.title}</p><p className="mt-2 font-body text-xs text-[var(--tcmi-muted)]">{course.type}</p><p className="mt-1 font-body text-sm">Duration: {course.duration}</p><p className="font-body text-sm">Fee: {course.fee}</p><p className="font-body text-xs text-[var(--tcmi-muted)]">{course.assignment}</p><div className="mt-3 flex gap-2"><button onClick={() => openCourseDialog("edit", course)} className="rounded border border-[var(--tcmi-border)] px-2 py-1 text-xs hover:border-black">Edit</button><button onClick={() => openAssignDialog(course)} className="rounded border border-[var(--tcmi-border)] px-2 py-1 text-xs hover:border-black">Assign</button></div></article>))}</div></div>}
 
-      {isBatches && <div className="mt-5 space-y-4"><div className="flex flex-wrap items-center justify-between gap-2"><p className="font-body text-[11px] uppercase tracking-[0.16em] text-[var(--tcmi-muted)]">Batch Management</p><button type="button" onClick={openBatchDialog} className="inline-flex items-center gap-1 rounded-lg border border-black bg-black px-3 py-2 font-body text-xs text-white hover:bg-gray-800"><FiPlus size={14} /> Add Batch</button></div><div className="overflow-x-auto rounded-xl border border-[var(--tcmi-border)]"><table className="min-w-full border-collapse"><thead className="bg-[var(--tcmi-soft)]"><tr className="text-[11px] uppercase tracking-[0.12em] text-[var(--tcmi-muted)]"><th className="px-3 py-2 text-left">Batch</th><th className="px-3 py-2 text-left">Course</th><th className="px-3 py-2 text-left">Trainer</th><th className="px-3 py-2 text-left">Students</th><th className="px-3 py-2 text-left">Schedule Timing</th><th className="px-3 py-2 text-left">Mode</th></tr></thead><tbody>{batchRows.map((batch) => (<tr key={batch.id} className="border-t border-[var(--tcmi-border)] text-sm"><td className="px-3 py-2">{batch.batchName}</td><td className="px-3 py-2">{batch.course}</td><td className="px-3 py-2">{batch.trainer}</td><td className="px-3 py-2">{batch.students}</td><td className="px-3 py-2">{batch.schedule}</td><td className="px-3 py-2">{batch.mode}</td></tr>))}</tbody></table></div></div>}
-      {isAttendance && <div className="mt-5 space-y-4"><div className="flex flex-wrap items-center justify-between gap-2"><p className="font-body text-[11px] uppercase tracking-[0.16em] text-[var(--tcmi-muted)]">Attendance System</p><button type="button" onClick={openAttendanceDialog} className="rounded-lg border border-black bg-black px-3 py-2 text-xs text-white">+ Daily Marking</button></div><div className="overflow-x-auto rounded-xl border border-[var(--tcmi-border)]"><table className="min-w-full border-collapse"><thead className="bg-[var(--tcmi-soft)]"><tr className="text-[11px] uppercase tracking-[0.12em] text-[var(--tcmi-muted)]"><th className="px-3 py-2 text-left">Date</th><th className="px-3 py-2 text-left">Batch</th><th className="px-3 py-2 text-left">Student</th><th className="px-3 py-2 text-left">Status</th></tr></thead><tbody>{attendanceRows.map((row) => (<tr key={row.id} className="border-t border-[var(--tcmi-border)] text-sm"><td className="px-3 py-2">{format(new Date(row.date), "dd/MM/yy")}</td><td className="px-3 py-2">{row.batch}</td><td className="px-3 py-2">{row.student}</td><td className="px-3 py-2">{row.status}</td></tr>))}</tbody></table></div><div className="grid gap-3 xl:grid-cols-2"><div className="rounded-xl border border-[var(--tcmi-border)] p-4"><p className="text-xs uppercase tracking-[0.12em] text-[var(--tcmi-muted)]">Batch-wise Tracking</p><div className="mt-3 space-y-2">{attendanceByBatch.map((row) => (<div key={row.batch} className="flex items-center justify-between text-sm"><span>{row.batch}</span><span>{row.present}/{row.total} Present ({row.total ? ((row.present / row.total) * 100).toFixed(1) : "0"}%)</span></div>))}</div></div><div className="rounded-xl border border-[var(--tcmi-border)] p-4"><p className="text-xs uppercase tracking-[0.12em] text-[var(--tcmi-muted)]">Auto Percentage Calculation</p><div className="mt-3 overflow-x-auto"><table className="min-w-full text-sm"><thead><tr className="text-[11px] uppercase tracking-[0.12em] text-[var(--tcmi-muted)]"><th className="text-left">Student</th><th className="text-left">Batch</th><th className="text-left">Attendance %</th></tr></thead><tbody>{attendanceByStudent.map((row) => (<tr key={`${row.batch}-${row.student}`} className="border-t border-[var(--tcmi-border)]"><td className="py-2">{row.student}</td><td className="py-2">{row.batch}</td><td className="py-2">{row.percentage}%</td></tr>))}</tbody></table></div></div></div></div>}
-      {isExams && <div className="mt-5 space-y-4"><div className="flex flex-wrap items-center justify-between gap-2"><p className="font-body text-[11px] uppercase tracking-[0.16em] text-[var(--tcmi-muted)]">Exam System</p><button type="button" onClick={openExamModuleDialog} className="rounded-lg border border-black bg-black px-3 py-2 text-xs text-white">+ Create Exam</button></div><div className="overflow-x-auto rounded-xl border border-[var(--tcmi-border)]"><table className="min-w-full border-collapse"><thead className="bg-[var(--tcmi-soft)]"><tr className="text-[11px] uppercase tracking-[0.12em] text-[var(--tcmi-muted)]"><th className="px-3 py-2 text-left">Exam</th><th className="px-3 py-2 text-left">Batch</th><th className="px-3 py-2 text-left">Student</th><th className="px-3 py-2 text-left">Theory</th><th className="px-3 py-2 text-left">Practical</th><th className="px-3 py-2 text-left">Total</th><th className="px-3 py-2 text-left">Grade</th></tr></thead><tbody>{examRows.map((row) => (<tr key={row.id} className="border-t border-[var(--tcmi-border)] text-sm"><td className="px-3 py-2">{row.examName}</td><td className="px-3 py-2">{row.batch}</td><td className="px-3 py-2">{row.student}</td><td className="px-3 py-2">{row.theoryMarks}/50</td><td className="px-3 py-2">{row.practicalMarks}/50</td><td className="px-3 py-2">{row.totalMarks}/100</td><td className="px-3 py-2">{row.grade}</td></tr>))}</tbody></table></div></div>}
+      {isBatches && <div className="mt-5 space-y-4"><div className="flex flex-wrap items-center justify-between gap-2"><p className="font-body text-[11px] uppercase tracking-[0.16em] text-[var(--tcmi-muted)]">Batch Management</p><button type="button" onClick={openBatchDialog} className="inline-flex items-center gap-1 rounded-lg border border-black bg-black px-3 py-2 font-body text-xs text-white hover:bg-gray-800"><FiPlus size={14} /> Add Batch</button></div><div className="overflow-x-auto rounded-xl border border-[var(--tcmi-border)]"><table className="min-w-full border-collapse"><thead className="bg-[var(--tcmi-soft)]"><tr className="text-[11px] uppercase tracking-[0.12em] text-[var(--tcmi-muted)]"><th className="px-3 py-2 text-left">Batch</th><th className="px-3 py-2 text-left">Course</th><th className="px-3 py-2 text-left">Trainer</th><th className="px-3 py-2 text-left">Students</th><th className="px-3 py-2 text-left">Schedule Timing</th><th className="px-3 py-2 text-left">Mode</th><th className="px-3 py-2 text-left">Actions</th></tr></thead><tbody>{batchRows.map((batch) => (<tr key={batch.id} className="border-t border-[var(--tcmi-border)] text-sm"><td className="px-3 py-2">{batch.batchName}</td><td className="px-3 py-2">{batch.course}</td><td className="px-3 py-2">{batch.trainer}</td><td className="px-3 py-2">{batch.students}</td><td className="px-3 py-2">{batch.schedule}</td><td className="px-3 py-2">{batch.mode}</td><td className="px-3 py-2"><div className="flex gap-2"><button onClick={() => openBatchEditDialog(batch)} className="rounded border border-[var(--tcmi-border)] px-2 py-1 text-xs hover:border-black">Edit</button><button onClick={() => requestDelete("batch_delete", batch.id, "Are you sure you want to delete this batch?")} className="rounded border border-[var(--tcmi-border)] px-2 py-1 text-xs hover:border-black">Delete</button></div></td></tr>))}</tbody></table></div></div>}
+      {isAttendance && <div className="mt-5 space-y-4"><div className="flex flex-wrap items-center justify-between gap-2"><p className="font-body text-[11px] uppercase tracking-[0.16em] text-[var(--tcmi-muted)]">Attendance System</p><button type="button" onClick={openAttendanceDialog} className="rounded-lg border border-black bg-black px-3 py-2 text-xs text-white">+ Daily Marking</button></div><div className="overflow-x-auto rounded-xl border border-[var(--tcmi-border)]"><table className="min-w-full border-collapse"><thead className="bg-[var(--tcmi-soft)]"><tr className="text-[11px] uppercase tracking-[0.12em] text-[var(--tcmi-muted)]"><th className="px-3 py-2 text-left">Date</th><th className="px-3 py-2 text-left">Batch</th><th className="px-3 py-2 text-left">Student</th><th className="px-3 py-2 text-left">Status</th><th className="px-3 py-2 text-left">Actions</th></tr></thead><tbody>{attendanceRows.map((row) => (<tr key={row.id} className="border-t border-[var(--tcmi-border)] text-sm"><td className="px-3 py-2">{format(new Date(row.date), "dd/MM/yy")}</td><td className="px-3 py-2">{row.batch}</td><td className="px-3 py-2">{row.student}</td><td className="px-3 py-2">{row.status}</td><td className="px-3 py-2"><button onClick={() => openAttendanceEditDialog(row)} className="rounded border border-[var(--tcmi-border)] px-2 py-1 text-xs hover:border-black">Edit</button></td></tr>))}</tbody></table></div><div className="grid gap-3 xl:grid-cols-2"><div className="rounded-xl border border-[var(--tcmi-border)] p-4"><p className="text-xs uppercase tracking-[0.12em] text-[var(--tcmi-muted)]">Batch-wise Tracking</p><div className="mt-3 space-y-2">{attendanceByBatch.map((row) => (<div key={row.batch} className="flex items-center justify-between text-sm"><span>{row.batch}</span><span>{row.present}/{row.total} Present ({row.total ? ((row.present / row.total) * 100).toFixed(1) : "0"}%)</span></div>))}</div></div><div className="rounded-xl border border-[var(--tcmi-border)] p-4"><p className="text-xs uppercase tracking-[0.12em] text-[var(--tcmi-muted)]">Auto Percentage Calculation</p><div className="mt-3 overflow-x-auto"><table className="min-w-full text-sm"><thead><tr className="text-[11px] uppercase tracking-[0.12em] text-[var(--tcmi-muted)]"><th className="text-left">Student</th><th className="text-left">Batch</th><th className="text-left">Attendance %</th></tr></thead><tbody>{attendanceByStudent.map((row) => (<tr key={`${row.batch}-${row.student}`} className="border-t border-[var(--tcmi-border)]"><td className="py-2">{row.student}</td><td className="py-2">{row.batch}</td><td className="py-2">{row.percentage}%</td></tr>))}</tbody></table></div></div></div></div>}
+      {isExams && <div className="mt-5 space-y-4"><div className="flex flex-wrap items-center justify-between gap-2"><p className="font-body text-[11px] uppercase tracking-[0.16em] text-[var(--tcmi-muted)]">Exam System</p><button type="button" onClick={openExamModuleDialog} className="rounded-lg border border-black bg-black px-3 py-2 text-xs text-white">+ Create Exam</button></div><div className="overflow-x-auto rounded-xl border border-[var(--tcmi-border)]"><table className="min-w-full border-collapse"><thead className="bg-[var(--tcmi-soft)]"><tr className="text-[11px] uppercase tracking-[0.12em] text-[var(--tcmi-muted)]"><th className="px-3 py-2 text-left">Exam</th><th className="px-3 py-2 text-left">Batch</th><th className="px-3 py-2 text-left">Student</th><th className="px-3 py-2 text-left">Theory</th><th className="px-3 py-2 text-left">Practical</th><th className="px-3 py-2 text-left">Total</th><th className="px-3 py-2 text-left">Grade</th><th className="px-3 py-2 text-left">Actions</th></tr></thead><tbody>{examRows.map((row) => (<tr key={row.id} className="border-t border-[var(--tcmi-border)] text-sm"><td className="px-3 py-2">{row.examName}</td><td className="px-3 py-2">{row.batch}</td><td className="px-3 py-2">{row.student}</td><td className="px-3 py-2">{row.theoryMarks}/50</td><td className="px-3 py-2">{row.practicalMarks}/50</td><td className="px-3 py-2">{row.totalMarks}/100</td><td className="px-3 py-2">{row.grade}</td><td className="px-3 py-2"><div className="flex gap-2"><button onClick={() => openExamEditDialog(row)} className="rounded border border-[var(--tcmi-border)] px-2 py-1 text-xs hover:border-black">Edit</button><button onClick={() => requestDelete("exam_delete", row.id, "Are you sure you want to delete this exam record?")} className="rounded border border-[var(--tcmi-border)] px-2 py-1 text-xs hover:border-black">Delete</button></div></td></tr>))}</tbody></table></div></div>}
       {isCertificates && <div className="mt-5 space-y-4"><div className="flex flex-wrap items-center justify-between gap-2"><p className="font-body text-[11px] uppercase tracking-[0.16em] text-[var(--tcmi-muted)]">Certificate & Marksheet</p><button type="button" onClick={openCertificateDialog} className="rounded-lg border border-black bg-black px-3 py-2 text-xs text-white">+ Auto-generate</button></div><div className="overflow-x-auto rounded-xl border border-[var(--tcmi-border)]"><table className="min-w-full border-collapse"><thead className="bg-[var(--tcmi-soft)]"><tr className="text-[11px] uppercase tracking-[0.12em] text-[var(--tcmi-muted)]"><th className="px-3 py-2 text-left">Student</th><th className="px-3 py-2 text-left">Batch</th><th className="px-3 py-2 text-left">Type</th><th className="px-3 py-2 text-left">Grade</th><th className="px-3 py-2 text-left">Issue Date</th><th className="px-3 py-2 text-left">QR Verification</th></tr></thead><tbody>{certificateRows.map((row) => (<tr key={row.id} className="border-t border-[var(--tcmi-border)] text-sm"><td className="px-3 py-2">{row.student}</td><td className="px-3 py-2">{row.batch}</td><td className="px-3 py-2">{row.type}</td><td className="px-3 py-2">{row.grade}</td><td className="px-3 py-2">{format(new Date(row.issueDate), "dd/MM/yy")}</td><td className="px-3 py-2"><code className="rounded bg-[var(--tcmi-soft)] px-2 py-1 text-xs">{row.qrCode}</code></td></tr>))}</tbody></table></div></div>}
-      {isDocuments && <div className="mt-5 space-y-4"><div className="flex flex-wrap items-center justify-between gap-2"><p className="font-body text-[11px] uppercase tracking-[0.16em] text-[var(--tcmi-muted)]">Document Management</p><button type="button" onClick={openDocumentDialog} className="rounded-lg border border-black bg-black px-3 py-2 text-xs text-white">+ Add Document</button></div><div className="overflow-x-auto rounded-xl border border-[var(--tcmi-border)]"><table className="min-w-full border-collapse"><thead className="bg-[var(--tcmi-soft)]"><tr className="text-[11px] uppercase tracking-[0.12em] text-[var(--tcmi-muted)]"><th className="px-3 py-2 text-left">Student</th><th className="px-3 py-2 text-left">Batch</th><th className="px-3 py-2 text-left">Type</th><th className="px-3 py-2 text-left">File</th><th className="px-3 py-2 text-left">Status</th><th className="px-3 py-2 text-left">Uploaded On</th><th className="px-3 py-2 text-left">Actions</th></tr></thead><tbody>{documentRows.map((row) => (<tr key={row.id} className="border-t border-[var(--tcmi-border)] text-sm"><td className="px-3 py-2">{row.student}</td><td className="px-3 py-2">{row.batch}</td><td className="px-3 py-2">{row.docType}</td><td className="px-3 py-2">{row.fileName}</td><td className="px-3 py-2">{row.status}</td><td className="px-3 py-2">{format(new Date(row.uploadedOn), "dd/MM/yy")}</td><td className="px-3 py-2"><button className="rounded-lg border border-gray-200 p-2 hover:bg-gray-50" aria-label="Download"><FiDownload size={14} /></button></td></tr>))}</tbody></table></div></div>}
+      {isDocuments && <div className="mt-5 space-y-4"><div className="flex flex-wrap items-center justify-between gap-2"><p className="font-body text-[11px] uppercase tracking-[0.16em] text-[var(--tcmi-muted)]">Document Management</p><button type="button" onClick={openDocumentDialog} className="rounded-lg border border-black bg-black px-3 py-2 text-xs text-white">+ Add Document</button></div><div className="overflow-x-auto rounded-xl border border-[var(--tcmi-border)]"><table className="min-w-full border-collapse"><thead className="bg-[var(--tcmi-soft)]"><tr className="text-[11px] uppercase tracking-[0.12em] text-[var(--tcmi-muted)]"><th className="px-3 py-2 text-left">Student</th><th className="px-3 py-2 text-left">Batch</th><th className="px-3 py-2 text-left">Type</th><th className="px-3 py-2 text-left">File</th><th className="px-3 py-2 text-left">Status</th><th className="px-3 py-2 text-left">Uploaded On</th><th className="px-3 py-2 text-left">Actions</th></tr></thead><tbody>{documentRows.map((row) => (<tr key={row.id} className="border-t border-[var(--tcmi-border)] text-sm"><td className="px-3 py-2">{row.student}</td><td className="px-3 py-2">{row.batch}</td><td className="px-3 py-2">{row.docType}</td><td className="px-3 py-2">{row.fileName}</td><td className="px-3 py-2">{row.status}</td><td className="px-3 py-2">{format(new Date(row.uploadedOn), "dd/MM/yy")}</td><td className="px-3 py-2"><div className="flex gap-2"><button className="rounded-lg border border-gray-200 p-2 hover:bg-gray-50" aria-label="Download"><FiDownload size={14} /></button><button onClick={() => openDocumentEditDialog(row)} className="rounded border border-[var(--tcmi-border)] px-2 py-1 text-xs hover:border-black">Edit</button><button onClick={() => requestDelete("document_delete", row.id, "Are you sure you want to delete this document?")} className="rounded border border-[var(--tcmi-border)] px-2 py-1 text-xs hover:border-black">Delete</button></div></td></tr>))}</tbody></table></div></div>}
 
       {studentModal.open && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"><div className="w-full max-w-5xl rounded-2xl border border-[var(--tcmi-border)] bg-white p-6 shadow-2xl max-h-[88vh] overflow-y-auto"><div className="mb-4 flex items-center justify-between border-b border-[var(--tcmi-border)] pb-3"><h4 className="font-heading text-xl">{studentModal.mode === "add" ? "Student Enrollment Form" : "Update Student Enrollment"}</h4><button onClick={() => setStudentModal({ open: false, mode: "add", studentId: null })} className="rounded border px-2 py-1 text-xs">Close</button></div><div className="grid gap-5 lg:grid-cols-2"><div className="space-y-3 rounded-xl border border-[var(--tcmi-border)] bg-[var(--tcmi-soft)]/60 p-4"><p className="font-body text-[11px] uppercase tracking-[0.12em] text-[var(--tcmi-muted)]">Student Information</p><label className="block text-xs">Full Name<input className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" value={studentForm.name} onChange={(e) => setStudentForm((p) => ({ ...p, name: e.target.value }))} />{studentErrors.name && <p className="text-xs text-red-600">{studentErrors.name}</p>}</label><label className="block text-xs">Date of Birth<input type="date" className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" value={studentForm.dob} onChange={(e) => setStudentForm((p) => ({ ...p, dob: e.target.value }))} />{studentErrors.dob && <p className="text-xs text-red-600">{studentErrors.dob}</p>}</label><label className="block text-xs">Gender<select className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" value={studentForm.gender} onChange={(e) => setStudentForm((p) => ({ ...p, gender: e.target.value }))}><option value="">Select</option><option>Male</option><option>Female</option><option>Other</option></select>{studentErrors.gender && <p className="text-xs text-red-600">{studentErrors.gender}</p>}</label><label className="block text-xs">Nationality<input className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" value={studentForm.nationality} onChange={(e) => setStudentForm((p) => ({ ...p, nationality: e.target.value }))} />{studentErrors.nationality && <p className="text-xs text-red-600">{studentErrors.nationality}</p>}</label><label className="block text-xs">Aadhar / National ID<input className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" value={studentForm.aadhar} onChange={(e) => setStudentForm((p) => ({ ...p, aadhar: e.target.value }))} />{studentErrors.aadhar && <p className="text-xs text-red-600">{studentErrors.aadhar}</p>}</label><label className="block text-xs">Student Photo Upload<input type="file" accept="image/*" className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" onChange={handlePhotoChange} />{studentErrors.photo && <p className="text-xs text-red-600">{studentErrors.photo}</p>}</label>{studentPhotoPreview && <img src={studentPhotoPreview} alt="Student" className="h-20 w-20 rounded border object-cover" />}</div><div className="space-y-3 rounded-xl border border-[var(--tcmi-border)] bg-[var(--tcmi-soft)]/60 p-4"><p className="font-body text-[11px] uppercase tracking-[0.12em] text-[var(--tcmi-muted)]">Contact, Course & Fee Assignment</p><label className="block text-xs">Email<input type="email" className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" value={studentForm.email} onChange={(e) => setStudentForm((p) => ({ ...p, email: e.target.value }))} />{studentErrors.email && <p className="text-xs text-red-600">{studentErrors.email}</p>}</label><label className="block text-xs">Student Mobile<input className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" value={studentForm.phone} maxLength={10} inputMode="numeric" onChange={(e) => setStudentForm((p) => ({ ...p, phone: e.target.value.replace(/\D/g, "").slice(0, 10) }))} />{studentErrors.phone && <p className="text-xs text-red-600">{studentErrors.phone}</p>}</label><label className="block text-xs">Alternate Phone<input className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" value={studentForm.altPhone} onChange={(e) => setStudentForm((p) => ({ ...p, altPhone: e.target.value }))} /></label><label className="block text-xs">Guardian Name<input className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" value={studentForm.guardian} onChange={(e) => setStudentForm((p) => ({ ...p, guardian: e.target.value }))} />{studentErrors.guardian && <p className="text-xs text-red-600">{studentErrors.guardian}</p>}</label><label className="block text-xs">Guardian Phone<input className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" value={studentForm.guardianPhone} onChange={(e) => setStudentForm((p) => ({ ...p, guardianPhone: e.target.value }))} /></label><label className="block text-xs">Address<input className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" value={studentForm.address} onChange={(e) => setStudentForm((p) => ({ ...p, address: e.target.value }))} /></label><label className="block text-xs">Course Type<select className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" value={studentForm.courseType} onChange={(e) => setStudentForm((p) => ({ ...p, courseType: e.target.value }))}><option>Certification</option><option>Diploma</option></select></label><label className="block text-xs">Assign Course<input className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" value={studentForm.course} onChange={(e) => setStudentForm((p) => ({ ...p, course: e.target.value }))} />{studentErrors.course && <p className="text-xs text-red-600">{studentErrors.course}</p>}</label><label className="block text-xs">Assign Batch<input className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" value={studentForm.batch} onChange={(e) => setStudentForm((p) => ({ ...p, batch: e.target.value }))} />{studentErrors.batch && <p className="text-xs text-red-600">{studentErrors.batch}</p>}</label><label className="block text-xs">Mode<select className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" value={studentForm.mode} onChange={(e) => setStudentForm((p) => ({ ...p, mode: e.target.value }))}><option>Offline</option><option>Online</option></select></label><label className="block text-xs">Fees Status<input className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" value={studentForm.fees} onChange={(e) => setStudentForm((p) => ({ ...p, fees: e.target.value }))} />{studentErrors.fees && <p className="text-xs text-red-600">{studentErrors.fees}</p>}</label></div></div><div className="mt-4 flex justify-end gap-2"><button onClick={() => setStudentModal({ open: false, mode: "add", studentId: null })} className="rounded-lg border border-[var(--tcmi-border)] px-3 py-2 text-xs font-medium hover:bg-gray-50">Cancel</button><button onClick={saveStudent} className="rounded-lg border border-black bg-black px-3 py-2 text-xs font-medium text-white hover:bg-gray-900">Save Student</button></div></div></div>}
 
@@ -723,11 +950,11 @@ const TCMIOverviewPanel = ({ content, globalSearch = "", role = "Admin" }) => {
       {courseModalState.open && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"><div className="w-full max-w-lg rounded-2xl border border-[var(--tcmi-border)] bg-white p-5"><div className="mb-4 flex items-center justify-between"><h4 className="font-heading text-xl">{courseModalState.mode === "add" ? "Add Course" : "Edit Course"}</h4><button onClick={() => setCourseModalState({ open: false, mode: "add", id: null })} className="rounded border px-2 py-1 text-xs">Close</button></div><div className="grid gap-3"><label className="text-xs">Course Name<input value={courseForm.title} onChange={(e) => setCourseForm((prev) => ({ ...prev, title: e.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" />{courseErrors.title && <p className="text-xs text-red-600">{courseErrors.title}</p>}</label><label className="text-xs">Course Type<select value={courseForm.type} onChange={(e) => setCourseForm((prev) => ({ ...prev, type: e.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none"><option>Certification</option><option>Diploma</option></select></label><label className="text-xs">Duration<input value={courseForm.duration} placeholder="e.g. 3 months" onChange={(e) => setCourseForm((prev) => ({ ...prev, duration: e.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" />{courseErrors.duration && <p className="text-xs text-red-600">{courseErrors.duration}</p>}</label><label className="text-xs">Fee (INR)<input value={courseForm.fee} inputMode="numeric" onChange={(e) => setCourseForm((prev) => ({ ...prev, fee: e.target.value.replace(/[^\d]/g, "") }))} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" />{courseErrors.fee && <p className="text-xs text-red-600">{courseErrors.fee}</p>}</label></div><div className="mt-4 flex justify-end gap-2"><button onClick={() => setCourseModalState({ open: false, mode: "add", id: null })} className="rounded border px-3 py-2 text-xs">Cancel</button><button onClick={saveCourse} className="rounded-lg border border-black bg-black px-3 py-2 text-xs font-medium text-white hover:bg-gray-900">{courseModalState.mode === "add" ? "Save Course" : "Update Course"}</button></div></div></div>}
       {assignModal.open && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"><div className="w-full max-w-md rounded-2xl border border-[var(--tcmi-border)] bg-white p-5"><div className="mb-4 flex items-center justify-between border-b pb-3"><h4 className="font-heading text-xl">Assign Students</h4><button onClick={() => setAssignModal({ open: false, courseId: null })} className="rounded border px-2 py-1 text-xs">Close</button></div><label className="text-xs">Assigned Students Count<input type="number" min="0" value={assignCount} onChange={(e) => setAssignCount(e.target.value)} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" />{assignError && <p className="text-xs text-red-600">{assignError}</p>}</label><div className="mt-4 flex justify-end gap-2"><button onClick={() => setAssignModal({ open: false, courseId: null })} className="rounded border px-3 py-2 text-xs">Cancel</button><button onClick={saveAssignment} className="rounded-lg border border-black bg-black px-3 py-2 text-xs font-medium text-white hover:bg-gray-900">Save Assignment</button></div></div></div>}
 
-      {batchModal && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"><div className="w-full max-w-xl rounded-2xl border border-[var(--tcmi-border)] bg-white p-5"><div className="mb-4 flex items-center justify-between border-b pb-3"><h4 className="font-heading text-xl">Add Batch</h4><button onClick={() => setBatchModal(false)} className="rounded border px-2 py-1 text-xs">Close</button></div><div className="grid gap-3 sm:grid-cols-2"><label className="text-xs">Batch Name<input value={batchForm.batchName} onChange={(e) => setBatchForm((prev) => ({ ...prev, batchName: e.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" />{batchErrors.batchName && <p className="text-xs text-red-600">{batchErrors.batchName}</p>}</label><label className="text-xs">Course<input value={batchForm.course} onChange={(e) => setBatchForm((prev) => ({ ...prev, course: e.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" />{batchErrors.course && <p className="text-xs text-red-600">{batchErrors.course}</p>}</label><label className="text-xs">Trainer<input value={batchForm.trainer} onChange={(e) => setBatchForm((prev) => ({ ...prev, trainer: e.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" />{batchErrors.trainer && <p className="text-xs text-red-600">{batchErrors.trainer}</p>}</label><label className="text-xs">Assigned Students<input type="number" min="0" value={batchForm.students} onChange={(e) => setBatchForm((prev) => ({ ...prev, students: e.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" />{batchErrors.students && <p className="text-xs text-red-600">{batchErrors.students}</p>}</label><label className="text-xs sm:col-span-2">Schedule Timing<input value={batchForm.schedule} onChange={(e) => setBatchForm((prev) => ({ ...prev, schedule: e.target.value }))} placeholder="Mon, Wed, Fri · 6:30 PM - 8:00 PM" className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" />{batchErrors.schedule && <p className="text-xs text-red-600">{batchErrors.schedule}</p>}</label><label className="text-xs sm:col-span-2">Mode<select value={batchForm.mode} onChange={(e) => setBatchForm((prev) => ({ ...prev, mode: e.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none"><option>Offline</option><option>Online</option><option>Hybrid</option></select></label></div><div className="mt-4 flex justify-end gap-2"><button onClick={() => setBatchModal(false)} className="rounded border px-3 py-2 text-xs">Cancel</button><button onClick={saveBatch} className="rounded-lg border border-black bg-black px-3 py-2 text-xs font-medium text-white hover:bg-gray-900">Save Batch</button></div></div></div>}
-      {attendanceModal && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"><div className="w-full max-w-lg rounded-2xl border border-[var(--tcmi-border)] bg-white p-5"><div className="mb-4 flex items-center justify-between border-b pb-3"><h4 className="font-heading text-xl">Daily Attendance Marking</h4><button onClick={() => setAttendanceModal(false)} className="rounded border px-2 py-1 text-xs">Close</button></div><div className="grid gap-3">{["date", "batch", "student"].map((field) => (<label key={field} className="text-xs">{field.charAt(0).toUpperCase() + field.slice(1)}<input type={field === "date" ? "date" : "text"} value={attendanceForm[field]} onChange={(e) => setAttendanceForm((prev) => ({ ...prev, [field]: e.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" />{attendanceErrors[field] && <p className="text-xs text-red-600">{attendanceErrors[field]}</p>}</label>))}<label className="text-xs">Status<select value={attendanceForm.status} onChange={(e) => setAttendanceForm((prev) => ({ ...prev, status: e.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none"><option>Present</option><option>Absent</option></select>{attendanceErrors.status && <p className="text-xs text-red-600">{attendanceErrors.status}</p>}</label></div><div className="mt-4 flex justify-end gap-2"><button onClick={() => setAttendanceModal(false)} className="rounded border px-3 py-2 text-xs">Cancel</button><button onClick={saveAttendance} className="rounded-lg border border-black bg-black px-3 py-2 text-xs font-medium text-white hover:bg-gray-900">Save Attendance</button></div></div></div>}
-      {examModuleModal && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"><div className="w-full max-w-xl rounded-2xl border border-[var(--tcmi-border)] bg-white p-5"><div className="mb-4 flex items-center justify-between border-b pb-3"><h4 className="font-heading text-xl">Create Exam Record</h4><button onClick={() => setExamModuleModal(false)} className="rounded border px-2 py-1 text-xs">Close</button></div><div className="grid gap-3 sm:grid-cols-2"><label className="text-xs sm:col-span-2">Exam Name<input value={examModuleForm.examName} onChange={(e) => setExamModuleForm((prev) => ({ ...prev, examName: e.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" />{examModuleErrors.examName && <p className="text-xs text-red-600">{examModuleErrors.examName}</p>}</label><label className="text-xs">Batch<input value={examModuleForm.batch} onChange={(e) => setExamModuleForm((prev) => ({ ...prev, batch: e.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" />{examModuleErrors.batch && <p className="text-xs text-red-600">{examModuleErrors.batch}</p>}</label><label className="text-xs">Student<input value={examModuleForm.student} onChange={(e) => setExamModuleForm((prev) => ({ ...prev, student: e.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" />{examModuleErrors.student && <p className="text-xs text-red-600">{examModuleErrors.student}</p>}</label><label className="text-xs">Theory Marks (0-50)<input type="number" min="0" max="50" value={examModuleForm.theoryMarks} onChange={(e) => setExamModuleForm((prev) => ({ ...prev, theoryMarks: e.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" />{examModuleErrors.theoryMarks && <p className="text-xs text-red-600">{examModuleErrors.theoryMarks}</p>}</label><label className="text-xs">Practical Marks (0-50)<input type="number" min="0" max="50" value={examModuleForm.practicalMarks} onChange={(e) => setExamModuleForm((prev) => ({ ...prev, practicalMarks: e.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" />{examModuleErrors.practicalMarks && <p className="text-xs text-red-600">{examModuleErrors.practicalMarks}</p>}</label><label className="text-xs sm:col-span-2">Exam Date<input type="date" value={examModuleForm.examDate} onChange={(e) => setExamModuleForm((prev) => ({ ...prev, examDate: e.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" />{examModuleErrors.examDate && <p className="text-xs text-red-600">{examModuleErrors.examDate}</p>}</label></div><div className="mt-4 flex justify-end gap-2"><button onClick={() => setExamModuleModal(false)} className="rounded border px-3 py-2 text-xs">Cancel</button><button onClick={saveExamModuleRecord} className="rounded-lg border border-black bg-black px-3 py-2 text-xs font-medium text-white hover:bg-gray-900">Save Exam</button></div></div></div>}
+      {batchModal.open && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"><div className="w-full max-w-xl rounded-2xl border border-[var(--tcmi-border)] bg-white p-5"><div className="mb-4 flex items-center justify-between border-b pb-3"><h4 className="font-heading text-xl">{batchModal.mode === "add" ? "Add Batch" : "Edit Batch"}</h4><button onClick={() => setBatchModal({ open: false, mode: "add", id: null })} className="rounded border px-2 py-1 text-xs">Close</button></div><div className="grid gap-3 sm:grid-cols-2"><label className="text-xs">Batch Name<input value={batchForm.batchName} onChange={(e) => setBatchForm((prev) => ({ ...prev, batchName: e.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" />{batchErrors.batchName && <p className="text-xs text-red-600">{batchErrors.batchName}</p>}</label><label className="text-xs">Course<input value={batchForm.course} onChange={(e) => setBatchForm((prev) => ({ ...prev, course: e.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" />{batchErrors.course && <p className="text-xs text-red-600">{batchErrors.course}</p>}</label><label className="text-xs">Trainer<input value={batchForm.trainer} onChange={(e) => setBatchForm((prev) => ({ ...prev, trainer: e.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" />{batchErrors.trainer && <p className="text-xs text-red-600">{batchErrors.trainer}</p>}</label><label className="text-xs">Assigned Students<input type="number" min="0" value={batchForm.students} onChange={(e) => setBatchForm((prev) => ({ ...prev, students: e.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" />{batchErrors.students && <p className="text-xs text-red-600">{batchErrors.students}</p>}</label><label className="text-xs sm:col-span-2">Schedule Timing<input value={batchForm.schedule} onChange={(e) => setBatchForm((prev) => ({ ...prev, schedule: e.target.value }))} placeholder="Mon, Wed, Fri · 6:30 PM - 8:00 PM" className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" />{batchErrors.schedule && <p className="text-xs text-red-600">{batchErrors.schedule}</p>}</label><label className="text-xs sm:col-span-2">Mode<select value={batchForm.mode} onChange={(e) => setBatchForm((prev) => ({ ...prev, mode: e.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none"><option>Offline</option><option>Online</option><option>Hybrid</option></select></label></div><div className="mt-4 flex justify-end gap-2"><button onClick={() => setBatchModal({ open: false, mode: "add", id: null })} className="rounded border px-3 py-2 text-xs">Cancel</button><button onClick={saveBatch} className="rounded-lg border border-black bg-black px-3 py-2 text-xs font-medium text-white hover:bg-gray-900">{batchModal.mode === "add" ? "Save Batch" : "Update Batch"}</button></div></div></div>}
+      {attendanceModal.open && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"><div className="w-full max-w-lg rounded-2xl border border-[var(--tcmi-border)] bg-white p-5"><div className="mb-4 flex items-center justify-between border-b pb-3"><h4 className="font-heading text-xl">{attendanceModal.mode === "add" ? "Daily Attendance Marking" : "Edit Attendance"}</h4><button onClick={() => setAttendanceModal({ open: false, mode: "add", id: null })} className="rounded border px-2 py-1 text-xs">Close</button></div><div className="grid gap-3">{["date", "batch", "student"].map((field) => (<label key={field} className="text-xs">{field.charAt(0).toUpperCase() + field.slice(1)}<input type={field === "date" ? "date" : "text"} value={attendanceForm[field]} onChange={(e) => setAttendanceForm((prev) => ({ ...prev, [field]: e.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" />{attendanceErrors[field] && <p className="text-xs text-red-600">{attendanceErrors[field]}</p>}</label>))}<label className="text-xs">Status<select value={attendanceForm.status} onChange={(e) => setAttendanceForm((prev) => ({ ...prev, status: e.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none"><option>Present</option><option>Absent</option></select>{attendanceErrors.status && <p className="text-xs text-red-600">{attendanceErrors.status}</p>}</label></div><div className="mt-4 flex justify-end gap-2"><button onClick={() => setAttendanceModal({ open: false, mode: "add", id: null })} className="rounded border px-3 py-2 text-xs">Cancel</button><button onClick={saveAttendance} className="rounded-lg border border-black bg-black px-3 py-2 text-xs font-medium text-white hover:bg-gray-900">{attendanceModal.mode === "add" ? "Save Attendance" : "Update Attendance"}</button></div></div></div>}
+      {examModuleModal.open && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"><div className="w-full max-w-xl rounded-2xl border border-[var(--tcmi-border)] bg-white p-5"><div className="mb-4 flex items-center justify-between border-b pb-3"><h4 className="font-heading text-xl">{examModuleModal.mode === "add" ? "Create Exam Record" : "Edit Exam Record"}</h4><button onClick={() => setExamModuleModal({ open: false, mode: "add", id: null })} className="rounded border px-2 py-1 text-xs">Close</button></div><div className="grid gap-3 sm:grid-cols-2"><label className="text-xs sm:col-span-2">Exam Name<input value={examModuleForm.examName} onChange={(e) => setExamModuleForm((prev) => ({ ...prev, examName: e.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" />{examModuleErrors.examName && <p className="text-xs text-red-600">{examModuleErrors.examName}</p>}</label><label className="text-xs">Batch<input value={examModuleForm.batch} onChange={(e) => setExamModuleForm((prev) => ({ ...prev, batch: e.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" />{examModuleErrors.batch && <p className="text-xs text-red-600">{examModuleErrors.batch}</p>}</label><label className="text-xs">Student<input value={examModuleForm.student} onChange={(e) => setExamModuleForm((prev) => ({ ...prev, student: e.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" />{examModuleErrors.student && <p className="text-xs text-red-600">{examModuleErrors.student}</p>}</label><label className="text-xs">Theory Marks (0-50)<input type="number" min="0" max="50" value={examModuleForm.theoryMarks} onChange={(e) => setExamModuleForm((prev) => ({ ...prev, theoryMarks: e.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" />{examModuleErrors.theoryMarks && <p className="text-xs text-red-600">{examModuleErrors.theoryMarks}</p>}</label><label className="text-xs">Practical Marks (0-50)<input type="number" min="0" max="50" value={examModuleForm.practicalMarks} onChange={(e) => setExamModuleForm((prev) => ({ ...prev, practicalMarks: e.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" />{examModuleErrors.practicalMarks && <p className="text-xs text-red-600">{examModuleErrors.practicalMarks}</p>}</label><label className="text-xs sm:col-span-2">Exam Date<input type="date" value={examModuleForm.examDate} onChange={(e) => setExamModuleForm((prev) => ({ ...prev, examDate: e.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" />{examModuleErrors.examDate && <p className="text-xs text-red-600">{examModuleErrors.examDate}</p>}</label></div><div className="mt-4 flex justify-end gap-2"><button onClick={() => setExamModuleModal({ open: false, mode: "add", id: null })} className="rounded border px-3 py-2 text-xs">Cancel</button><button onClick={saveExamModuleRecord} className="rounded-lg border border-black bg-black px-3 py-2 text-xs font-medium text-white hover:bg-gray-900">{examModuleModal.mode === "add" ? "Save Exam" : "Update Exam"}</button></div></div></div>}
       {certificateModal && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"><div className="w-full max-w-lg rounded-2xl border border-[var(--tcmi-border)] bg-white p-5"><div className="mb-4 flex items-center justify-between border-b pb-3"><h4 className="font-heading text-xl">Generate Certificate / Marksheet</h4><button onClick={() => setCertificateModal(false)} className="rounded border px-2 py-1 text-xs">Close</button></div><div className="grid gap-3"><label className="text-xs">Student<input value={certificateForm.student} onChange={(e) => setCertificateForm((prev) => ({ ...prev, student: e.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" />{certificateErrors.student && <p className="text-xs text-red-600">{certificateErrors.student}</p>}</label><label className="text-xs">Batch<input value={certificateForm.batch} onChange={(e) => setCertificateForm((prev) => ({ ...prev, batch: e.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" />{certificateErrors.batch && <p className="text-xs text-red-600">{certificateErrors.batch}</p>}</label><label className="text-xs">Type<select value={certificateForm.type} onChange={(e) => setCertificateForm((prev) => ({ ...prev, type: e.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none"><option>Certificate</option><option>Marksheet</option></select></label><label className="text-xs">Grade<input value={certificateForm.grade} onChange={(e) => setCertificateForm((prev) => ({ ...prev, grade: e.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" />{certificateErrors.grade && <p className="text-xs text-red-600">{certificateErrors.grade}</p>}</label><label className="text-xs">Issue Date<input type="date" value={certificateForm.issueDate} onChange={(e) => setCertificateForm((prev) => ({ ...prev, issueDate: e.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" />{certificateErrors.issueDate && <p className="text-xs text-red-600">{certificateErrors.issueDate}</p>}</label></div><div className="mt-4 flex justify-end gap-2"><button onClick={() => setCertificateModal(false)} className="rounded border px-3 py-2 text-xs">Cancel</button><button onClick={saveCertificate} className="rounded-lg border border-black bg-black px-3 py-2 text-xs font-medium text-white hover:bg-gray-900">Generate</button></div></div></div>}
-      {documentModal && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"><div className="w-full max-w-lg rounded-2xl border border-[var(--tcmi-border)] bg-white p-5"><div className="mb-4 flex items-center justify-between border-b pb-3"><h4 className="font-heading text-xl">Add Student Document</h4><button onClick={() => setDocumentModal(false)} className="rounded border px-2 py-1 text-xs">Close</button></div><div className="grid gap-3"><label className="text-xs">Student<input value={documentForm.student} onChange={(e) => setDocumentForm((prev) => ({ ...prev, student: e.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" />{documentErrors.student && <p className="text-xs text-red-600">{documentErrors.student}</p>}</label><label className="text-xs">Batch<input value={documentForm.batch} onChange={(e) => setDocumentForm((prev) => ({ ...prev, batch: e.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" />{documentErrors.batch && <p className="text-xs text-red-600">{documentErrors.batch}</p>}</label><label className="text-xs">Document Type<select value={documentForm.docType} onChange={(e) => setDocumentForm((prev) => ({ ...prev, docType: e.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none"><option>Registration Form</option><option>ID Proof</option><option>Certificate</option><option>Student File</option></select>{documentErrors.docType && <p className="text-xs text-red-600">{documentErrors.docType}</p>}</label><label className="text-xs">File Name<input value={documentForm.fileName} onChange={(e) => setDocumentForm((prev) => ({ ...prev, fileName: e.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" placeholder="example.pdf" />{documentErrors.fileName && <p className="text-xs text-red-600">{documentErrors.fileName}</p>}</label><label className="text-xs">Upload Date<input type="date" value={documentForm.uploadedOn} onChange={(e) => setDocumentForm((prev) => ({ ...prev, uploadedOn: e.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" />{documentErrors.uploadedOn && <p className="text-xs text-red-600">{documentErrors.uploadedOn}</p>}</label></div><div className="mt-4 flex justify-end gap-2"><button onClick={() => setDocumentModal(false)} className="rounded border px-3 py-2 text-xs">Cancel</button><button onClick={saveDocument} className="rounded-lg border border-black bg-black px-3 py-2 text-xs font-medium text-white hover:bg-gray-900">Save Document</button></div></div></div>}
+      {documentModal.open && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"><div className="w-full max-w-lg rounded-2xl border border-[var(--tcmi-border)] bg-white p-5"><div className="mb-4 flex items-center justify-between border-b pb-3"><h4 className="font-heading text-xl">{documentModal.mode === "add" ? "Add Student Document" : "Edit Student Document"}</h4><button onClick={() => setDocumentModal({ open: false, mode: "add", id: null })} className="rounded border px-2 py-1 text-xs">Close</button></div><div className="grid gap-3"><label className="text-xs">Student<input value={documentForm.student} onChange={(e) => setDocumentForm((prev) => ({ ...prev, student: e.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" />{documentErrors.student && <p className="text-xs text-red-600">{documentErrors.student}</p>}</label><label className="text-xs">Batch<input value={documentForm.batch} onChange={(e) => setDocumentForm((prev) => ({ ...prev, batch: e.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" />{documentErrors.batch && <p className="text-xs text-red-600">{documentErrors.batch}</p>}</label><label className="text-xs">Document Type<select value={documentForm.docType} onChange={(e) => setDocumentForm((prev) => ({ ...prev, docType: e.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none"><option>Registration Form</option><option>ID Proof</option><option>Certificate</option><option>Student File</option></select>{documentErrors.docType && <p className="text-xs text-red-600">{documentErrors.docType}</p>}</label><label className="text-xs">File Name<input value={documentForm.fileName} onChange={(e) => setDocumentForm((prev) => ({ ...prev, fileName: e.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" placeholder="example.pdf" />{documentErrors.fileName && <p className="text-xs text-red-600">{documentErrors.fileName}</p>}</label><label className="text-xs">Upload Date<input type="date" value={documentForm.uploadedOn} onChange={(e) => setDocumentForm((prev) => ({ ...prev, uploadedOn: e.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" />{documentErrors.uploadedOn && <p className="text-xs text-red-600">{documentErrors.uploadedOn}</p>}</label></div><div className="mt-4 flex justify-end gap-2"><button onClick={() => setDocumentModal({ open: false, mode: "add", id: null })} className="rounded border px-3 py-2 text-xs">Cancel</button><button onClick={saveDocument} className="rounded-lg border border-black bg-black px-3 py-2 text-xs font-medium text-white hover:bg-gray-900">{documentModal.mode === "add" ? "Save Document" : "Update Document"}</button></div></div></div>}
       {confirmDialog.open && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"><div className="w-full max-w-md rounded-lg border border-gray-200 bg-white p-3"><div className="mb-3 border-b border-gray-200 pb-2"><h4 className="text-lg font-semibold">Confirm Action</h4></div><p className="text-sm">{confirmDialog.message}</p><div className="mt-3 flex justify-end gap-2"><button onClick={() => setConfirmDialog({ open: false, type: "", payload: null, message: "" })} className="rounded-lg border border-gray-200 px-3 py-2 text-xs hover:bg-gray-50">Cancel</button><button onClick={confirmDeleteAction} className="rounded-lg border border-black bg-black px-3 py-2 text-xs text-white">Confirm</button></div></div></div>}
     </section>
   );
