@@ -31,6 +31,12 @@ const defaultBatchForm = {
   schedule: "",
   mode: "Offline",
 };
+const defaultCourseForm = {
+  title: "",
+  type: "Certification",
+  duration: "",
+  fee: "",
+};
 const defaultAttendanceForm = { date: "", batch: "", student: "", status: "Present" };
 const defaultExamModuleForm = { examName: "", batch: "", student: "", theoryMarks: "", practicalMarks: "", examDate: "" };
 const defaultCertificateForm = { student: "", batch: "", type: "Certificate", grade: "", issueDate: "" };
@@ -39,7 +45,6 @@ const defaultDocumentForm = { student: "", batch: "", docType: "Registration For
 const TCMIOverviewPanel = ({ content, globalSearch = "", role = "Admin" }) => {
   const [selectedStudentId, setSelectedStudentId] = useState(tcmiStudentRows[0].id);
   const [openStudentModal, setOpenStudentModal] = useState(false);
-  const [openCourseModal, setOpenCourseModal] = useState(false);
 
   const [studentRows, setStudentRows] = useState(tcmiStudentRows);
   const [studentModal, setStudentModal] = useState({ open: false, mode: "add", studentId: null });
@@ -58,6 +63,12 @@ const TCMIOverviewPanel = ({ content, globalSearch = "", role = "Admin" }) => {
   const [financeEditErrors, setFinanceEditErrors] = useState({});
 
   const [courseCards, setCourseCards] = useState(tcmiCourseCatalog);
+  const [courseModalState, setCourseModalState] = useState({ open: false, mode: "add", id: null });
+  const [courseForm, setCourseForm] = useState(defaultCourseForm);
+  const [courseErrors, setCourseErrors] = useState({});
+  const [assignModal, setAssignModal] = useState({ open: false, courseId: null });
+  const [assignCount, setAssignCount] = useState("0");
+  const [assignError, setAssignError] = useState("");
   const [batchRows, setBatchRows] = useState(tcmiBatchRows);
   const [batchModal, setBatchModal] = useState(false);
   const [batchForm, setBatchForm] = useState(defaultBatchForm);
@@ -202,6 +213,56 @@ const TCMIOverviewPanel = ({ content, globalSearch = "", role = "Admin" }) => {
       setStudentModal({ open: false, mode: "add", studentId: null });
       setToastMessage("Student updated successfully.");
     }
+    if (confirmDialog.type === "finance_update") {
+      const { id, form } = confirmDialog.payload;
+      const totalFee = Number(form.totalFee);
+      const paid = Number(form.paid);
+      const discount = Number(form.discount || 0);
+      const due = Math.max(totalFee - paid - discount, 0);
+
+      setFinanceRows((prev) =>
+        prev.map((row) =>
+          row.id === id
+            ? {
+                ...row,
+                student: form.student.trim(),
+                totalFee,
+                paid,
+                discount,
+                installment: form.installment,
+                due,
+                date: form.date,
+              }
+            : row
+        )
+      );
+      setFinanceEditModal({ open: false, id: null });
+      setToastMessage("Fee entry updated successfully.");
+    }
+    if (confirmDialog.type === "course_update") {
+      const { id, form } = confirmDialog.payload;
+      const fee = `₹${Number(form.fee).toLocaleString("en-IN")}`;
+      setCourseCards((prev) =>
+        prev.map((course) =>
+          course.id === id
+            ? { ...course, title: form.title.trim(), type: form.type, duration: form.duration.trim(), fee }
+            : course
+        )
+      );
+      setCourseModalState({ open: false, mode: "add", id: null });
+      setCourseForm(defaultCourseForm);
+      setToastMessage("Course updated successfully.");
+    }
+    if (confirmDialog.type === "course_assign_update") {
+      const { courseId, assignedCount } = confirmDialog.payload;
+      setCourseCards((prev) =>
+        prev.map((course) =>
+          course.id === courseId ? { ...course, assignment: formatAssignment(assignedCount) } : course
+        )
+      );
+      setAssignModal({ open: false, courseId: null });
+      setToastMessage("Course assignment updated.");
+    }
     setConfirmDialog({ open: false, type: "", payload: null, message: "" });
     setTimeout(() => setToastMessage(""), 2000);
   };
@@ -289,32 +350,105 @@ const TCMIOverviewPanel = ({ content, globalSearch = "", role = "Admin" }) => {
     setFinanceEditErrors(errors);
     if (Object.keys(errors).length) return;
 
-    const due = Math.max(totalFee - paid - discount, 0);
-
-    setFinanceRows((prev) =>
-      prev.map((row) =>
-        row.id === financeEditModal.id
-          ? {
-              ...row,
-              student: financeEditForm.student.trim(),
-              totalFee,
-              paid,
-              discount,
-              installment: financeEditForm.installment,
-              due,
-              date: financeEditForm.date,
-            }
-          : row
-      )
+    requestDelete(
+      "finance_update",
+      { id: financeEditModal.id, form: { ...financeEditForm } },
+      "Are you sure you want to update this fee entry?"
     );
-
-    setFinanceEditModal({ open: false, id: null });
   };
 
   const openBatchDialog = () => {
     setBatchErrors({});
     setBatchForm(defaultBatchForm);
     setBatchModal(true);
+  };
+
+  const parseAssignedStudents = (assignment = "") => {
+    const match = assignment.match(/\d+/);
+    return match ? Number(match[0]) : 0;
+  };
+
+  const formatAssignment = (count) => `${count} students assigned`;
+
+  const openCourseDialog = (mode, course = null) => {
+    setCourseErrors({});
+    if (mode === "edit" && course) {
+      setCourseForm({
+        title: course.title,
+        type: course.type,
+        duration: course.duration,
+        fee: String(course.fee || "").replace(/[^\d.]/g, ""),
+      });
+      setCourseModalState({ open: true, mode: "edit", id: course.id });
+      return;
+    }
+
+    setCourseForm(defaultCourseForm);
+    setCourseModalState({ open: true, mode: "add", id: null });
+  };
+
+  const validateCourseForm = () => {
+    const errors = {};
+    const feeNumber = Number(courseForm.fee);
+
+    if (!courseForm.title.trim()) errors.title = "Course title is required.";
+    if (!courseForm.duration.trim()) errors.duration = "Duration is required.";
+    if (Number.isNaN(feeNumber) || feeNumber <= 0) errors.fee = "Fee must be greater than 0.";
+
+    setCourseErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const saveCourse = () => {
+    if (!validateCourseForm()) return;
+
+    const fee = `₹${Number(courseForm.fee).toLocaleString("en-IN")}`;
+
+    if (courseModalState.mode === "edit") {
+      requestDelete(
+        "course_update",
+        { id: courseModalState.id, form: { ...courseForm } },
+        "Are you sure you want to update this course?"
+      );
+    } else {
+      const next = courseCards.length + 1;
+      setCourseCards((prev) => [
+        ...prev,
+        {
+          id: `CRS-${400 + next}`,
+          title: courseForm.title.trim(),
+          type: courseForm.type,
+          duration: courseForm.duration.trim(),
+          fee,
+          assignment: "0 students assigned",
+        },
+      ]);
+      setToastMessage("Course added successfully.");
+      setCourseModalState({ open: false, mode: "add", id: null });
+      setCourseForm(defaultCourseForm);
+      setTimeout(() => setToastMessage(""), 2000);
+    }
+  };
+
+  const openAssignDialog = (course) => {
+    setAssignError("");
+    setAssignCount(String(parseAssignedStudents(course.assignment)));
+    setAssignModal({ open: true, courseId: course.id });
+  };
+
+  const saveAssignment = () => {
+    const nextCount = Number(assignCount);
+
+    if (Number.isNaN(nextCount) || nextCount < 0) {
+      setAssignError("Assigned students must be 0 or more.");
+      return;
+    }
+
+    requestDelete(
+      "course_assign_update",
+      { courseId: assignModal.courseId, assignedCount: nextCount },
+      "Are you sure you want to update assigned students for this course?"
+    );
   };
 
   const saveBatch = () => {
@@ -570,7 +704,7 @@ const TCMIOverviewPanel = ({ content, globalSearch = "", role = "Admin" }) => {
         </div>
       )}
 
-      {isCourses && <div className="mt-5"><div className="mb-3 flex items-center justify-between"><p className="font-body text-[11px] uppercase tracking-[0.16em] text-[var(--tcmi-muted)]">Course System</p><button type="button" onClick={() => setOpenCourseModal(true)} className="inline-flex items-center gap-1 rounded-lg border border-black bg-black px-3 py-2 font-body text-xs text-white hover:bg-gray-800"><FiPlus size={14} /> Add Course</button></div><div className="mb-3 flex flex-wrap gap-2">{["Certification (Level 1–4)", "Diploma programs", "Duration & fee setup", "Student assignment"].map((tag) => (<span key={tag} className="rounded-full border border-[var(--tcmi-border)] px-3 py-1 font-body text-xs">{tag}</span>))}</div><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{courseCards.map((course) => (<article key={course.id} className="rounded-xl border border-[var(--tcmi-border)] bg-white p-4"><p className="font-heading text-lg">{course.title}</p><p className="mt-2 font-body text-xs text-[var(--tcmi-muted)]">{course.type}</p><p className="mt-1 font-body text-sm">Duration: {course.duration}</p><p className="font-body text-sm">Fee: {course.fee}</p><p className="font-body text-xs text-[var(--tcmi-muted)]">{course.assignment}</p><div className="mt-3 flex gap-2"><button className="rounded border border-[var(--tcmi-border)] px-2 py-1 text-xs hover:border-black">Edit</button><button className="rounded border border-[var(--tcmi-border)] px-2 py-1 text-xs hover:border-black">Assign</button></div></article>))}</div></div>}
+      {isCourses && <div className="mt-5"><div className="mb-3 flex items-center justify-between"><p className="font-body text-[11px] uppercase tracking-[0.16em] text-[var(--tcmi-muted)]">Course System</p><button type="button" onClick={() => openCourseDialog("add")} className="inline-flex items-center gap-1 rounded-lg border border-black bg-black px-3 py-2 font-body text-xs text-white hover:bg-gray-800"><FiPlus size={14} /> Add Course</button></div><div className="mb-3 flex flex-wrap gap-2">{["Certification (Level 1–4)", "Diploma programs", "Duration & fee setup", "Student assignment"].map((tag) => (<span key={tag} className="rounded-full border border-[var(--tcmi-border)] px-3 py-1 font-body text-xs">{tag}</span>))}</div><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{courseCards.map((course) => (<article key={course.id} className="rounded-xl border border-[var(--tcmi-border)] bg-white p-4"><p className="font-heading text-lg">{course.title}</p><p className="mt-2 font-body text-xs text-[var(--tcmi-muted)]">{course.type}</p><p className="mt-1 font-body text-sm">Duration: {course.duration}</p><p className="font-body text-sm">Fee: {course.fee}</p><p className="font-body text-xs text-[var(--tcmi-muted)]">{course.assignment}</p><div className="mt-3 flex gap-2"><button onClick={() => openCourseDialog("edit", course)} className="rounded border border-[var(--tcmi-border)] px-2 py-1 text-xs hover:border-black">Edit</button><button onClick={() => openAssignDialog(course)} className="rounded border border-[var(--tcmi-border)] px-2 py-1 text-xs hover:border-black">Assign</button></div></article>))}</div></div>}
 
       {isBatches && <div className="mt-5 space-y-4"><div className="flex flex-wrap items-center justify-between gap-2"><p className="font-body text-[11px] uppercase tracking-[0.16em] text-[var(--tcmi-muted)]">Batch Management</p><button type="button" onClick={openBatchDialog} className="inline-flex items-center gap-1 rounded-lg border border-black bg-black px-3 py-2 font-body text-xs text-white hover:bg-gray-800"><FiPlus size={14} /> Add Batch</button></div><div className="overflow-x-auto rounded-xl border border-[var(--tcmi-border)]"><table className="min-w-full border-collapse"><thead className="bg-[var(--tcmi-soft)]"><tr className="text-[11px] uppercase tracking-[0.12em] text-[var(--tcmi-muted)]"><th className="px-3 py-2 text-left">Batch</th><th className="px-3 py-2 text-left">Course</th><th className="px-3 py-2 text-left">Trainer</th><th className="px-3 py-2 text-left">Students</th><th className="px-3 py-2 text-left">Schedule Timing</th><th className="px-3 py-2 text-left">Mode</th></tr></thead><tbody>{batchRows.map((batch) => (<tr key={batch.id} className="border-t border-[var(--tcmi-border)] text-sm"><td className="px-3 py-2">{batch.batchName}</td><td className="px-3 py-2">{batch.course}</td><td className="px-3 py-2">{batch.trainer}</td><td className="px-3 py-2">{batch.students}</td><td className="px-3 py-2">{batch.schedule}</td><td className="px-3 py-2">{batch.mode}</td></tr>))}</tbody></table></div></div>}
       {isAttendance && <div className="mt-5 space-y-4"><div className="flex flex-wrap items-center justify-between gap-2"><p className="font-body text-[11px] uppercase tracking-[0.16em] text-[var(--tcmi-muted)]">Attendance System</p><button type="button" onClick={openAttendanceDialog} className="rounded-lg border border-black bg-black px-3 py-2 text-xs text-white">+ Daily Marking</button></div><div className="overflow-x-auto rounded-xl border border-[var(--tcmi-border)]"><table className="min-w-full border-collapse"><thead className="bg-[var(--tcmi-soft)]"><tr className="text-[11px] uppercase tracking-[0.12em] text-[var(--tcmi-muted)]"><th className="px-3 py-2 text-left">Date</th><th className="px-3 py-2 text-left">Batch</th><th className="px-3 py-2 text-left">Student</th><th className="px-3 py-2 text-left">Status</th></tr></thead><tbody>{attendanceRows.map((row) => (<tr key={row.id} className="border-t border-[var(--tcmi-border)] text-sm"><td className="px-3 py-2">{format(new Date(row.date), "dd/MM/yy")}</td><td className="px-3 py-2">{row.batch}</td><td className="px-3 py-2">{row.student}</td><td className="px-3 py-2">{row.status}</td></tr>))}</tbody></table></div><div className="grid gap-3 xl:grid-cols-2"><div className="rounded-xl border border-[var(--tcmi-border)] p-4"><p className="text-xs uppercase tracking-[0.12em] text-[var(--tcmi-muted)]">Batch-wise Tracking</p><div className="mt-3 space-y-2">{attendanceByBatch.map((row) => (<div key={row.batch} className="flex items-center justify-between text-sm"><span>{row.batch}</span><span>{row.present}/{row.total} Present ({row.total ? ((row.present / row.total) * 100).toFixed(1) : "0"}%)</span></div>))}</div></div><div className="rounded-xl border border-[var(--tcmi-border)] p-4"><p className="text-xs uppercase tracking-[0.12em] text-[var(--tcmi-muted)]">Auto Percentage Calculation</p><div className="mt-3 overflow-x-auto"><table className="min-w-full text-sm"><thead><tr className="text-[11px] uppercase tracking-[0.12em] text-[var(--tcmi-muted)]"><th className="text-left">Student</th><th className="text-left">Batch</th><th className="text-left">Attendance %</th></tr></thead><tbody>{attendanceByStudent.map((row) => (<tr key={`${row.batch}-${row.student}`} className="border-t border-[var(--tcmi-border)]"><td className="py-2">{row.student}</td><td className="py-2">{row.batch}</td><td className="py-2">{row.percentage}%</td></tr>))}</tbody></table></div></div></div></div>}
@@ -586,7 +720,8 @@ const TCMIOverviewPanel = ({ content, globalSearch = "", role = "Admin" }) => {
 
       {financeEditModal.open && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"><div className="w-full max-w-lg rounded-2xl border border-[var(--tcmi-border)] bg-white p-5"><div className="mb-4 flex items-center justify-between border-b pb-3"><h4 className="font-heading text-xl">Update Fee Entry</h4><button onClick={() => setFinanceEditModal({ open: false, id: null })} className="rounded border px-2 py-1 text-xs">Close</button></div><div className="grid gap-3">{["student", "totalFee", "paid", "discount", "date"].map((field) => (<label key={field} className="text-xs">{field === "totalFee" ? "Total Fee" : field.charAt(0).toUpperCase() + field.slice(1)}<input type={field === "date" ? "date" : "text"} value={financeEditForm[field]} onChange={(e) => setFinanceEditForm((prev) => ({ ...prev, [field]: e.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" />{financeEditErrors[field] && <p className="text-xs text-red-600">{financeEditErrors[field]}</p>}</label>))}<label className="text-xs">Installment<select value={financeEditForm.installment} onChange={(e) => setFinanceEditForm((prev) => ({ ...prev, installment: e.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none"><option>No</option><option>Yes</option></select></label></div><div className="mt-4 flex justify-end gap-2"><button onClick={() => setFinanceEditModal({ open: false, id: null })} className="rounded border px-3 py-2 text-xs">Cancel</button><button onClick={saveFinanceUpdate} className="rounded-lg border border-black bg-black px-3 py-2 text-xs font-medium text-white hover:bg-gray-900">Update Fee</button></div></div></div>}
 
-      {openCourseModal && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"><div className="w-full max-w-lg rounded-2xl border border-[var(--tcmi-border)] bg-white p-5"><div className="mb-4 flex items-center justify-between"><h4 className="font-heading text-xl">Add Course</h4><button onClick={() => setOpenCourseModal(false)} className="rounded border px-2 py-1 text-xs">Close</button></div><p className="mb-3 font-body text-sm text-[var(--tcmi-muted)]">Click save to add a sample course card. This operation is prepared for full card CRUD in future.</p><button onClick={() => { const next = courseCards.length + 1; setCourseCards((prev) => [...prev, { id: `CRS-${400 + next}`, title: `New Course ${next}`, type: "Certification", duration: "3 months", fee: "₹22,000", assignment: "0 students assigned" }]); setOpenCourseModal(false); }} className="rounded-lg border border-black bg-black px-3 py-2 text-xs text-white">Save Sample Course</button></div></div>}
+      {courseModalState.open && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"><div className="w-full max-w-lg rounded-2xl border border-[var(--tcmi-border)] bg-white p-5"><div className="mb-4 flex items-center justify-between"><h4 className="font-heading text-xl">{courseModalState.mode === "add" ? "Add Course" : "Edit Course"}</h4><button onClick={() => setCourseModalState({ open: false, mode: "add", id: null })} className="rounded border px-2 py-1 text-xs">Close</button></div><div className="grid gap-3"><label className="text-xs">Course Name<input value={courseForm.title} onChange={(e) => setCourseForm((prev) => ({ ...prev, title: e.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" />{courseErrors.title && <p className="text-xs text-red-600">{courseErrors.title}</p>}</label><label className="text-xs">Course Type<select value={courseForm.type} onChange={(e) => setCourseForm((prev) => ({ ...prev, type: e.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none"><option>Certification</option><option>Diploma</option></select></label><label className="text-xs">Duration<input value={courseForm.duration} placeholder="e.g. 3 months" onChange={(e) => setCourseForm((prev) => ({ ...prev, duration: e.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" />{courseErrors.duration && <p className="text-xs text-red-600">{courseErrors.duration}</p>}</label><label className="text-xs">Fee (INR)<input value={courseForm.fee} inputMode="numeric" onChange={(e) => setCourseForm((prev) => ({ ...prev, fee: e.target.value.replace(/[^\d]/g, "") }))} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" />{courseErrors.fee && <p className="text-xs text-red-600">{courseErrors.fee}</p>}</label></div><div className="mt-4 flex justify-end gap-2"><button onClick={() => setCourseModalState({ open: false, mode: "add", id: null })} className="rounded border px-3 py-2 text-xs">Cancel</button><button onClick={saveCourse} className="rounded-lg border border-black bg-black px-3 py-2 text-xs font-medium text-white hover:bg-gray-900">{courseModalState.mode === "add" ? "Save Course" : "Update Course"}</button></div></div></div>}
+      {assignModal.open && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"><div className="w-full max-w-md rounded-2xl border border-[var(--tcmi-border)] bg-white p-5"><div className="mb-4 flex items-center justify-between border-b pb-3"><h4 className="font-heading text-xl">Assign Students</h4><button onClick={() => setAssignModal({ open: false, courseId: null })} className="rounded border px-2 py-1 text-xs">Close</button></div><label className="text-xs">Assigned Students Count<input type="number" min="0" value={assignCount} onChange={(e) => setAssignCount(e.target.value)} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" />{assignError && <p className="text-xs text-red-600">{assignError}</p>}</label><div className="mt-4 flex justify-end gap-2"><button onClick={() => setAssignModal({ open: false, courseId: null })} className="rounded border px-3 py-2 text-xs">Cancel</button><button onClick={saveAssignment} className="rounded-lg border border-black bg-black px-3 py-2 text-xs font-medium text-white hover:bg-gray-900">Save Assignment</button></div></div></div>}
 
       {batchModal && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"><div className="w-full max-w-xl rounded-2xl border border-[var(--tcmi-border)] bg-white p-5"><div className="mb-4 flex items-center justify-between border-b pb-3"><h4 className="font-heading text-xl">Add Batch</h4><button onClick={() => setBatchModal(false)} className="rounded border px-2 py-1 text-xs">Close</button></div><div className="grid gap-3 sm:grid-cols-2"><label className="text-xs">Batch Name<input value={batchForm.batchName} onChange={(e) => setBatchForm((prev) => ({ ...prev, batchName: e.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" />{batchErrors.batchName && <p className="text-xs text-red-600">{batchErrors.batchName}</p>}</label><label className="text-xs">Course<input value={batchForm.course} onChange={(e) => setBatchForm((prev) => ({ ...prev, course: e.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" />{batchErrors.course && <p className="text-xs text-red-600">{batchErrors.course}</p>}</label><label className="text-xs">Trainer<input value={batchForm.trainer} onChange={(e) => setBatchForm((prev) => ({ ...prev, trainer: e.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" />{batchErrors.trainer && <p className="text-xs text-red-600">{batchErrors.trainer}</p>}</label><label className="text-xs">Assigned Students<input type="number" min="0" value={batchForm.students} onChange={(e) => setBatchForm((prev) => ({ ...prev, students: e.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" />{batchErrors.students && <p className="text-xs text-red-600">{batchErrors.students}</p>}</label><label className="text-xs sm:col-span-2">Schedule Timing<input value={batchForm.schedule} onChange={(e) => setBatchForm((prev) => ({ ...prev, schedule: e.target.value }))} placeholder="Mon, Wed, Fri · 6:30 PM - 8:00 PM" className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" />{batchErrors.schedule && <p className="text-xs text-red-600">{batchErrors.schedule}</p>}</label><label className="text-xs sm:col-span-2">Mode<select value={batchForm.mode} onChange={(e) => setBatchForm((prev) => ({ ...prev, mode: e.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none"><option>Offline</option><option>Online</option><option>Hybrid</option></select></label></div><div className="mt-4 flex justify-end gap-2"><button onClick={() => setBatchModal(false)} className="rounded border px-3 py-2 text-xs">Cancel</button><button onClick={saveBatch} className="rounded-lg border border-black bg-black px-3 py-2 text-xs font-medium text-white hover:bg-gray-900">Save Batch</button></div></div></div>}
       {attendanceModal && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"><div className="w-full max-w-lg rounded-2xl border border-[var(--tcmi-border)] bg-white p-5"><div className="mb-4 flex items-center justify-between border-b pb-3"><h4 className="font-heading text-xl">Daily Attendance Marking</h4><button onClick={() => setAttendanceModal(false)} className="rounded border px-2 py-1 text-xs">Close</button></div><div className="grid gap-3">{["date", "batch", "student"].map((field) => (<label key={field} className="text-xs">{field.charAt(0).toUpperCase() + field.slice(1)}<input type={field === "date" ? "date" : "text"} value={attendanceForm[field]} onChange={(e) => setAttendanceForm((prev) => ({ ...prev, [field]: e.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none" />{attendanceErrors[field] && <p className="text-xs text-red-600">{attendanceErrors[field]}</p>}</label>))}<label className="text-xs">Status<select value={attendanceForm.status} onChange={(e) => setAttendanceForm((prev) => ({ ...prev, status: e.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-black focus:outline-none"><option>Present</option><option>Absent</option></select>{attendanceErrors.status && <p className="text-xs text-red-600">{attendanceErrors.status}</p>}</label></div><div className="mt-4 flex justify-end gap-2"><button onClick={() => setAttendanceModal(false)} className="rounded border px-3 py-2 text-xs">Cancel</button><button onClick={saveAttendance} className="rounded-lg border border-black bg-black px-3 py-2 text-xs font-medium text-white hover:bg-gray-900">Save Attendance</button></div></div></div>}
