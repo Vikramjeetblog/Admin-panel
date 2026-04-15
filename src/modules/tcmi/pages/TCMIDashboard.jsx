@@ -12,7 +12,6 @@ const TCMIDashboard = () => {
 
   const activeContent = useMemo(() => tcmiSectionContent[activeSection], [activeSection]);
   const visibleSections = useMemo(() => tcmiSections.filter((section) => !(role === "Faculty" && section.key === "finance")), [role]);
-  const showDashboardStats = activeSection === "dashboard";
   const recentLeads = tcmiLeadRows.slice(0, 3);
   const recentPayments = tcmiFinanceRows.slice(0, 3);
   const upcomingExams = tcmiExamRows.slice(0, 3);
@@ -39,8 +38,6 @@ const TCMIDashboard = () => {
         </div>
       </header>
 
-      {showDashboardStats && <DashboardModule recentLeads={recentLeads} recentPayments={recentPayments} upcomingExams={upcomingExams} />}
-
       <section className="grid gap-5 lg:grid-cols-[280px_minmax(0,1fr)]">
         <ModuleSidebar
           title="TCMI"
@@ -50,7 +47,11 @@ const TCMIDashboard = () => {
           onSelectSection={setActiveSection}
         />
 
-        <TCMIOverviewPanel content={activeContent} globalSearch={globalSearch} role={role} />
+        {activeSection === "dashboard" ? (
+          <DashboardModule recentLeads={recentLeads} recentPayments={recentPayments} upcomingExams={upcomingExams} />
+        ) : (
+          <TCMIOverviewPanel content={activeContent} globalSearch={globalSearch} role={role} />
+        )}
       </section>
     </div>
   );
