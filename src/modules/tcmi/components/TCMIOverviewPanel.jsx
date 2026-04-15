@@ -545,49 +545,7 @@ const TCMIOverviewPanel = ({ content, globalSearch = "", role = "Admin" }) => {
     setCourseModalState({ open: true, mode: "add", id: null });
   };
 
-  const validateCourseForm = () => {
-    const errors = {};
-    const feeNumber = Number(courseForm.fee);
-
-    if (!courseForm.title.trim()) errors.title = "Course title is required.";
-    if (!courseForm.duration.trim()) errors.duration = "Duration is required.";
-    if (Number.isNaN(feeNumber) || feeNumber <= 0) errors.fee = "Fee must be greater than 0.";
-
-    setCourseErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
-  const saveCourse = () => {
-    if (!validateCourseForm()) return;
-
-    const fee = `₹${Number(courseForm.fee).toLocaleString("en-IN")}`;
-
-    if (courseModalState.mode === "edit") {
-      requestDelete(
-        "course_update",
-        { id: courseModalState.id, form: { ...courseForm } },
-        "Are you sure you want to update this course?"
-      );
-    } else {
-      const next = courseCards.length + 1;
-      setCourseCards((prev) => [
-        ...prev,
-        {
-          id: `CRS-${400 + next}`,
-          title: courseForm.title.trim(),
-          type: courseForm.type,
-          duration: courseForm.duration.trim(),
-          fee,
-          assignment: "0 students assigned",
-        },
-      ]);
-      setToastMessage("Course added successfully.");
-      setCourseModalState({ open: false, mode: "add", id: null });
-      setCourseForm(defaultCourseForm);
-      setTimeout(() => setToastMessage(""), 2000);
-    }
-  };
-
+ 
   const openAssignDialog = (course) => {
     setAssignError("");
     setAssignCount(String(parseAssignedStudents(course.assignment)));
