@@ -213,6 +213,56 @@ const TCMIOverviewPanel = ({ content, globalSearch = "", role = "Admin" }) => {
       setStudentModal({ open: false, mode: "add", studentId: null });
       setToastMessage("Student updated successfully.");
     }
+    if (confirmDialog.type === "finance_update") {
+      const { id, form } = confirmDialog.payload;
+      const totalFee = Number(form.totalFee);
+      const paid = Number(form.paid);
+      const discount = Number(form.discount || 0);
+      const due = Math.max(totalFee - paid - discount, 0);
+
+      setFinanceRows((prev) =>
+        prev.map((row) =>
+          row.id === id
+            ? {
+                ...row,
+                student: form.student.trim(),
+                totalFee,
+                paid,
+                discount,
+                installment: form.installment,
+                due,
+                date: form.date,
+              }
+            : row
+        )
+      );
+      setFinanceEditModal({ open: false, id: null });
+      setToastMessage("Fee entry updated successfully.");
+    }
+    if (confirmDialog.type === "course_update") {
+      const { id, form } = confirmDialog.payload;
+      const fee = `₹${Number(form.fee).toLocaleString("en-IN")}`;
+      setCourseCards((prev) =>
+        prev.map((course) =>
+          course.id === id
+            ? { ...course, title: form.title.trim(), type: form.type, duration: form.duration.trim(), fee }
+            : course
+        )
+      );
+      setCourseModalState({ open: false, mode: "add", id: null });
+      setCourseForm(defaultCourseForm);
+      setToastMessage("Course updated successfully.");
+    }
+    if (confirmDialog.type === "course_assign_update") {
+      const { courseId, assignedCount } = confirmDialog.payload;
+      setCourseCards((prev) =>
+        prev.map((course) =>
+          course.id === courseId ? { ...course, assignment: formatAssignment(assignedCount) } : course
+        )
+      );
+      setAssignModal({ open: false, courseId: null });
+      setToastMessage("Course assignment updated.");
+    }
     setConfirmDialog({ open: false, type: "", payload: null, message: "" });
     setTimeout(() => setToastMessage(""), 2000);
   };
@@ -300,26 +350,11 @@ const TCMIOverviewPanel = ({ content, globalSearch = "", role = "Admin" }) => {
     setFinanceEditErrors(errors);
     if (Object.keys(errors).length) return;
 
-    const due = Math.max(totalFee - paid - discount, 0);
-
-    setFinanceRows((prev) =>
-      prev.map((row) =>
-        row.id === financeEditModal.id
-          ? {
-              ...row,
-              student: financeEditForm.student.trim(),
-              totalFee,
-              paid,
-              discount,
-              installment: financeEditForm.installment,
-              due,
-              date: financeEditForm.date,
-            }
-          : row
-      )
+    requestDelete(
+      "finance_update",
+      { id: financeEditModal.id, form: { ...financeEditForm } },
+      "Are you sure you want to update this fee entry?"
     );
-
-    setFinanceEditModal({ open: false, id: null });
   };
 
   const openBatchDialog = () => {
@@ -370,14 +405,11 @@ const TCMIOverviewPanel = ({ content, globalSearch = "", role = "Admin" }) => {
     const fee = `₹${Number(courseForm.fee).toLocaleString("en-IN")}`;
 
     if (courseModalState.mode === "edit") {
-      setCourseCards((prev) =>
-        prev.map((course) =>
-          course.id === courseModalState.id
-            ? { ...course, title: courseForm.title.trim(), type: courseForm.type, duration: courseForm.duration.trim(), fee }
-            : course
-        )
+      requestDelete(
+        "course_update",
+        { id: courseModalState.id, form: { ...courseForm } },
+        "Are you sure you want to update this course?"
       );
-      setToastMessage("Course updated successfully.");
     } else {
       const next = courseCards.length + 1;
       setCourseCards((prev) => [
@@ -392,11 +424,10 @@ const TCMIOverviewPanel = ({ content, globalSearch = "", role = "Admin" }) => {
         },
       ]);
       setToastMessage("Course added successfully.");
+      setCourseModalState({ open: false, mode: "add", id: null });
+      setCourseForm(defaultCourseForm);
+      setTimeout(() => setToastMessage(""), 2000);
     }
-
-    setCourseModalState({ open: false, mode: "add", id: null });
-    setCourseForm(defaultCourseForm);
-    setTimeout(() => setToastMessage(""), 2000);
   };
 
   const openAssignDialog = (course) => {
@@ -413,14 +444,11 @@ const TCMIOverviewPanel = ({ content, globalSearch = "", role = "Admin" }) => {
       return;
     }
 
-    setCourseCards((prev) =>
-      prev.map((course) =>
-        course.id === assignModal.courseId ? { ...course, assignment: formatAssignment(nextCount) } : course
-      )
+    requestDelete(
+      "course_assign_update",
+      { courseId: assignModal.courseId, assignedCount: nextCount },
+      "Are you sure you want to update assigned students for this course?"
     );
-    setAssignModal({ open: false, courseId: null });
-    setToastMessage("Course assignment updated.");
-    setTimeout(() => setToastMessage(""), 2000);
   };
 
   const saveBatch = () => {
