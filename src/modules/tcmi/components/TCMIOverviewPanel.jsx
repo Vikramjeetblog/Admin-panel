@@ -521,52 +521,6 @@ const TCMIOverviewPanel = ({ content, globalSearch = "", role = "Admin" }) => {
     );
   };
 
-  const parseAssignedStudents = (assignment = "") => {
-    const match = assignment.match(/\d+/);
-    return match ? Number(match[0]) : 0;
-  };
-
-  const formatAssignment = (count) => `${count} students assigned`;
-
-  const openCourseDialog = (mode, course = null) => {
-    setCourseErrors({});
-    if (mode === "edit" && course) {
-      setCourseForm({
-        title: course.title,
-        type: course.type,
-        duration: course.duration,
-        fee: String(course.fee || "").replace(/[^\d.]/g, ""),
-      });
-      setCourseModalState({ open: true, mode: "edit", id: course.id });
-      return;
-    }
-
-    setCourseForm(defaultCourseForm);
-    setCourseModalState({ open: true, mode: "add", id: null });
-  };
-
- 
-  const openAssignDialog = (course) => {
-    setAssignError("");
-    setAssignCount(String(parseAssignedStudents(course.assignment)));
-    setAssignModal({ open: true, courseId: course.id });
-  };
-
-  const saveAssignment = () => {
-    const nextCount = Number(assignCount);
-
-    if (Number.isNaN(nextCount) || nextCount < 0) {
-      setAssignError("Assigned students must be 0 or more.");
-      return;
-    }
-
-    requestDelete(
-      "course_assign_update",
-      { courseId: assignModal.courseId, assignedCount: nextCount },
-      "Are you sure you want to update assigned students for this course?"
-    );
-  };
-
   const saveBatch = () => {
     const errors = {};
     const assignedStudents = Number(batchForm.students);
